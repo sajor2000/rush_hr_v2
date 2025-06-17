@@ -7,6 +7,27 @@ import { detectJobType } from '@/lib/jobTypeDetector';
 import { extractJobRequirements } from '@/lib/requirementExtractor';
 import { evaluateCandidate } from '@/lib/candidateEvaluator';
 
+// Import pdfjs-dist and TextItem type
+import * as pdfjsLib from 'pdfjs-dist';
+import { TextItem } from 'pdfjs-dist/types/src/display/api'; // Path to TextItem type definition
+
+// Set workerSrc for pdfjs-dist
+// For Next.js API routes (Node.js environment), point to the worker file within the package
+try {
+  // This ensures that the worker is correctly bundled and located by Next.js/Vercel
+  // Note: require.resolve might not work as expected in all Vercel build environments for all packages.
+  // Using a direct path or ensuring the worker is part of the serverless function bundle is key.
+  // For now, let's assume pdfjs-dist's main import handles worker loading or we use a CDN as fallback.
+  // The 'pdfjs-dist/webpack' entry point is often recommended for these environments.
+  // Let's try to set it to the CDN by default if direct resolution is complex.
+  const version = (pdfjsLib as any).version || '4.0.379'; // Use a recent pdfjs-dist version
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`;
+  console.log(`pdfjs-dist workerSrc set to CDN: ${pdfjsLib.GlobalWorkerOptions.workerSrc}`);
+} catch (e) {
+  console.error("Critical error setting pdfjsLib.GlobalWorkerOptions.workerSrc. PDF processing may fail.", e);
+}
+
+
 // In-memory cache for evaluation results
 const evaluationCache = new Map<string, any>();
 
@@ -26,25 +47,35 @@ function createSseStream(data: any, eventName?: string) {
 }
 
 async function parseResume(file: File): Promise<{ fileName: string; text: string; buffer: Buffer; error?: string }> {
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const fileBuffer = Buffer.from(await file.arrayBuffer());
   try {
     let text = '';
 
     if (file.type === 'application/pdf') {
-      const { default: pdf } = await import('pdf-parse');
-      const data = await pdf(buffer);
-      text = data.text;
+      const uint8Array = new Uint8Array(fileBuffer);
+      // Note: getDocument can accept various types, including Uint8Array or an object with data.
+      const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
+      const pdfDoc = await loadingTask.promise;
+      let fullText = '';
+      for (let i = 1; i <= pdfDoc.numPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const textContent = await page.getTextContent();
+        // textContent.items can be an array of TextItem or TextMarkedContent
+        fullText += textContent.items.map((item: TextItem | import('pdfjs-dist/types/src/display/api').TextMarkedContent) => ('str' in item ? (item as TextItem).str : '')).join(' ') + '\n';
+      }
+      text = fullText.trim();
     } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      const { value } = await mammoth.extractRawText({ buffer });
+      const { value } = await mammoth.extractRawText({ buffer: fileBuffer });
       text = value;
     } else {
-      return { fileName: file.name, text: '', buffer, error: 'Unsupported file type' };
+      return { fileName: file.name, text: '', buffer: fileBuffer, error: 'Unsupported file type' };
     }
 
-    return { fileName: file.name, text, buffer };
+    return { fileName: file.name, text, buffer: fileBuffer };
   } catch (error) {
     console.error(`Error parsing ${file.name}:`, error);
-    return { fileName: file.name, text: '', buffer, error: 'Failed to parse file' };
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return { fileName: file.name, text: '', buffer: fileBuffer, error: `Failed to parse file: ${errorMessage}` };
   }
 }
 

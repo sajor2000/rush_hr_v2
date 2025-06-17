@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mammoth from 'mammoth';
+import * as pdfjsLib from 'pdfjs-dist';
+import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api'; // Adjust path if necessary
+
+// Set workerSrc for pdfjs-dist
+try {
+  const version = (pdfjsLib as any).version || '4.0.379'; // Use a recent pdfjs-dist version
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`;
+  console.log(`pdfjs-dist workerSrc set to CDN for parse-job-description: ${pdfjsLib.GlobalWorkerOptions.workerSrc}`);
+} catch (e) {
+  console.error("Critical error setting pdfjsLib.GlobalWorkerOptions.workerSrc in parse-job-description. PDF processing may fail.", e);
+}
+
 
 async function getFileBuffer(file: File): Promise<Buffer> {
   const arrayBuffer = await file.arrayBuffer();
@@ -19,9 +31,16 @@ export async function POST(req: NextRequest) {
     let text = '';
 
     if (file.type === 'application/pdf') {
-      const { default: pdf } = await import('pdf-parse');
-      const data = await pdf(buffer);
-      text = data.text;
+      const uint8Array = new Uint8Array(buffer);
+      const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
+      const pdfDoc = await loadingTask.promise;
+      let fullText = '';
+      for (let i = 1; i <= pdfDoc.numPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const textContent = await page.getTextContent();
+        fullText += textContent.items.map((item: TextItem | TextMarkedContent) => ('str' in item ? (item as TextItem).str : '')).join(' ') + '\n';
+      }
+      text = fullText.trim();
     } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       const { value } = await mammoth.extractRawText({ buffer });
       text = value;
@@ -35,7 +54,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('Error parsing job description:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during parsing.';
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: `Failed to parse file: ${errorMessage}` }, { status: 500 });
   }
 }
