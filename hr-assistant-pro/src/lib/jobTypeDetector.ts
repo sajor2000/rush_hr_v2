@@ -31,7 +31,7 @@ export async function detectJobType(jobDescription: string): Promise<JobType> {
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4-turbo',
+      model: 'gpt-4o',
       messages: [
         {
           role: 'system',
