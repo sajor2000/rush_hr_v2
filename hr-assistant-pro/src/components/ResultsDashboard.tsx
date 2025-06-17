@@ -25,7 +25,7 @@ const columns = [
   }),
   columnHelper.accessor('scores.overall', {
     header: 'Overall Score',
-    cell: info => `${Math.round(info.getValue() * 100)}%`,
+    cell: info => `${Math.round(info.row.original.scores.overall)}%`, // Assuming scores.overall is 0-100
   }),
   columnHelper.accessor('tier', {
     header: 'Tier',
@@ -40,7 +40,24 @@ const columns = [
   }),
   columnHelper.accessor('explanation', {
     header: 'Summary',
-    cell: info => <p className="text-sm text-gray-600 truncate max-w-xs">{info.getValue()}</p>,
+    cell: info => {
+      const evaluation = info.row.original;
+      return (
+        <div className="text-sm text-gray-700 max-w-md whitespace-normal">
+          <p>{evaluation.explanation}</p>
+          {evaluation.tier === 'Not Qualified' && evaluation.gaps && evaluation.gaps.length > 0 && (
+            <div className="mt-2 pt-1 border-t border-dashed border-red-300">
+              <p className="font-semibold text-red-600">Reason for Not Qualified:</p>
+              <ul className="list-disc list-inside ml-2 text-red-500">
+                {evaluation.gaps.map((gap, index) => (
+                  <li key={index}>{gap}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      );
+    },
   }),
 ];
 
