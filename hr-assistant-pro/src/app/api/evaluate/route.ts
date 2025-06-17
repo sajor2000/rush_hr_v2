@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-// import pdf from 'pdf-parse';
+
 import mammoth from 'mammoth';
 import pLimit from 'p-limit';
 import { createHash } from 'crypto';
@@ -30,11 +30,11 @@ async function parseResume(file: File): Promise<{ fileName: string; text: string
   try {
     let text = '';
 
-    // if (file.type === 'application/pdf') {
-    //   // const data = await pdf(buffer); // Temporarily commented out
-    //   // text = data.text; // Temporarily commented out
-    // } else 
-    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    if (file.type === 'application/pdf') {
+      const { default: pdf } = await import('pdf-parse');
+      const data = await pdf(buffer);
+      text = data.text;
+    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       const { value } = await mammoth.extractRawText({ buffer });
       text = value;
     } else {
