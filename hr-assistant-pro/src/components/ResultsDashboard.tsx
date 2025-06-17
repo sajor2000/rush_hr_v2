@@ -1,4 +1,5 @@
 'use client';
+// Force re-evaluation by Vercel
 
 import { useMemo } from 'react';
 import { EvaluationResult } from '@/types';
@@ -32,7 +33,10 @@ const columns = [
       'Top Tier': 'bg-green-100 text-green-800',
       'Promising': 'bg-blue-100 text-blue-800',
       'Not a Fit': 'bg-red-100 text-red-800',
-    }[info.getValue()] || 'bg-gray-100 text-gray-800'}`}>{info.getValue()}</span>,
+      'Not Qualified': 'bg-gray-100 text-gray-800',
+      'Potential': 'bg-yellow-100 text-yellow-800',
+      'Qualified': 'bg-purple-100 text-purple-800',
+    }[info.getValue()] || 'bg-stone-100 text-stone-800'}`}>{info.getValue()}</span>,
   }),
   columnHelper.accessor('explanation', {
     header: 'Summary',
