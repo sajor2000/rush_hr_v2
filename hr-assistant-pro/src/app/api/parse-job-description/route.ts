@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 
 async function getFileBuffer(file: File): Promise<Buffer> {
@@ -20,6 +19,7 @@ export async function POST(req: NextRequest) {
     let text = '';
 
     if (file.type === 'application/pdf') {
+      const { default: pdf } = await import('pdf-parse');
       const data = await pdf(buffer);
       text = data.text;
     } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
