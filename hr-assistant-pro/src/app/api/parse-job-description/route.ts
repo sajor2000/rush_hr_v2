@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mammoth from 'mammoth';
-import * as pdfjsLib from 'pdfjs-dist';
-import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api'; // Adjust path if necessary
+// @ts-ignore -- Using legacy build to avoid DOMMatrix error in Node.js/Vercel build environment
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
+// @ts-ignore
+import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
 
 // Set workerSrc for pdfjs-dist
 try {

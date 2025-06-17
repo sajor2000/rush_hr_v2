@@ -7,9 +7,10 @@ import { detectJobType } from '@/lib/jobTypeDetector';
 import { extractJobRequirements } from '@/lib/requirementExtractor';
 import { evaluateCandidate } from '@/lib/candidateEvaluator';
 
-// Import pdfjs-dist and TextItem type
-import * as pdfjsLib from 'pdfjs-dist';
-import { TextItem } from 'pdfjs-dist/types/src/display/api'; // Path to TextItem type definition
+// @ts-ignore -- Using legacy build to avoid DOMMatrix error in Node.js/Vercel build environment
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
+// @ts-ignore
+import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
 
 // Set workerSrc for pdfjs-dist
 // For Next.js API routes (Node.js environment), point to the worker file within the package
