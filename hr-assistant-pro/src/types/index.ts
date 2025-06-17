@@ -52,6 +52,9 @@ export interface EvaluationResult {
   strengths: string[];
   gaps: string[];
   explanation: string;
+  quartileTier?: string; 
+  quartileRank?: number; 
+  totalQualifiedForQuartile?: number; 
 }
 
 // --- New Types from Prompt ---

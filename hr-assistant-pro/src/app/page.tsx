@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -31,6 +31,58 @@ export default function Home() {
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
   const [fatalError, setFatalError] = useState<string | null>(null);
+
+  // Function to calculate and apply quartile rankings
+  const applyQuartileRanking = (results: EvaluationResult[]): EvaluationResult[] => {
+    const qualifiedCandidates = results.filter(r => r.mustHavesMet === true);
+
+    if (qualifiedCandidates.length === 0) {
+      return results; // No qualified candidates to rank
+    }
+
+    // Sort qualified candidates by overall score, descending
+    qualifiedCandidates.sort((a, b) => b.scores.overall - a.scores.overall);
+
+    const totalQualified = qualifiedCandidates.length;
+    const q1End = Math.ceil(totalQualified * 0.25);
+    const q2End = Math.ceil(totalQualified * 0.50);
+    const q3End = Math.ceil(totalQualified * 0.75);
+
+    const rankedResults = qualifiedCandidates.map((candidate, index) => {
+      const rank = index + 1;
+      let quartileTier = '';
+      if (rank <= q1End) quartileTier = 'Top Qualified (Q1)';
+      else if (rank <= q2End) quartileTier = 'Highly Qualified (Q2)';
+      else if (rank <= q3End) quartileTier = 'Qualified (Q3)';
+      else quartileTier = 'Considerable (Q4)';
+      
+      return {
+        ...candidate,
+        quartileRank: rank,
+        quartileTier,
+        totalQualifiedForQuartile: totalQualified,
+      };
+    });
+
+    // Merge ranked results back into the original list, preserving original order for non-qualified
+    // or provide a completely new list if only showing qualified ones with quartiles.
+    // For now, let's update the original results array for those who qualified.
+    return results.map(originalResult => {
+      const rankedVersion = rankedResults.find(rr => rr.candidateName === originalResult.candidateName); // Assuming candidateName is unique
+      return rankedVersion || originalResult;
+    });
+  };
+
+  useEffect(() => {
+    if (!isEvaluating && evaluationResults.length > 0 && !fatalError) {
+      // Check if quartile ranking has already been applied to prevent infinite loops
+      const alreadyRanked = evaluationResults.some(r => r.quartileTier !== undefined);
+      if (!alreadyRanked) {
+        const resultsWithQuartiles = applyQuartileRanking([...evaluationResults]); // Use a copy
+        setEvaluationResults(resultsWithQuartiles);
+      }
+    }
+  }, [isEvaluating, evaluationResults, fatalError]);
 
   const handleJobDescriptionUpload = async (file: File) => {
     const formData = new FormData();
@@ -340,8 +392,21 @@ export default function Home() {
                         Export to PDF
                       </button>
                     </div>
-                    <AdaptiveResults results={evaluationResults} />
-                    <ResultsDashboard results={evaluationResults} />
+                    {/* <AdaptiveResults results={evaluationResults} /> */}
+                    {/* ResultsDashboard will now receive results potentially enriched with quartile data */}
+                    {jobInfo && jobInfo.jobRequirements && (
+                        <ResultsDashboard results={evaluationResults} jobRequirements={jobInfo.jobRequirements} />
+                    )}
+                    {/* Temporarily render raw quartile data for verification */}
+                    {evaluationResults.some(r => r.quartileTier) && (
+                      <div className="mt-6 p-4 bg-gray-100 rounded-lg">
+                        <h3 className="text-lg font-semibold">Quartile Ranking Details (Debug):</h3>
+                        <pre className="text-xs whitespace-pre-wrap">
+                          {JSON.stringify(evaluationResults.filter(r => r.quartileTier).map(r => ({ name: r.candidateName, score: r.scores.overall, tier: r.tier, mustHavesMet: r.mustHavesMet, quartile: r.quartileTier, rank: r.quartileRank, totalQ: r.totalQualifiedForQuartile })), null, 2)}
+                        </pre>
+                      </div>
+                    )}
+
                   </div>
                 )}
 
