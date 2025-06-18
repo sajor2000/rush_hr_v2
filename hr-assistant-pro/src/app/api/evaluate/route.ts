@@ -7,27 +7,13 @@ import { detectJobType } from '@/lib/jobTypeDetector';
 import { extractJobRequirements } from '@/lib/requirementExtractor';
 import { evaluateCandidate } from '@/lib/candidateEvaluator';
 
-// @ts-ignore -- Using legacy build to avoid DOMMatrix error in Node.js/Vercel build environment
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
+// @ts-ignore -- Using Node.js specific build of pdfjs-dist
+import * as pdfjsLib from 'pdfjs-dist/build/pdf.node.js';
 // @ts-ignore
 import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
 
-// Set workerSrc for pdfjs-dist
-// For Next.js API routes (Node.js environment), point to the worker file within the package
-try {
-  // This ensures that the worker is correctly bundled and located by Next.js/Vercel
-  // Note: require.resolve might not work as expected in all Vercel build environments for all packages.
-  // Using a direct path or ensuring the worker is part of the serverless function bundle is key.
-  // For now, let's assume pdfjs-dist's main import handles worker loading or we use a CDN as fallback.
-  // The 'pdfjs-dist/webpack' entry point is often recommended for these environments.
-  // Let's try to set it to the CDN by default if direct resolution is complex.
-  const version = (pdfjsLib as any).version || '4.0.379'; // Use a recent pdfjs-dist version
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`;
-  console.log(`pdfjs-dist workerSrc set to CDN: ${pdfjsLib.GlobalWorkerOptions.workerSrc}`);
-} catch (e) {
-  console.error("Critical error setting pdfjsLib.GlobalWorkerOptions.workerSrc. PDF processing may fail.", e);
-}
-
+// When using 'pdfjs-dist/build/pdf.node.js', explicit workerSrc configuration is typically not needed
+// as it includes a built-in worker thread implementation suitable for Node.js.
 
 // In-memory cache for evaluation results
 const evaluationCache = new Map<string, any>();

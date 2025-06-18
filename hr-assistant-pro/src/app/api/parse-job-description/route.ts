@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mammoth from 'mammoth';
-// @ts-ignore -- Using legacy build to avoid DOMMatrix error in Node.js/Vercel build environment
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
+// @ts-ignore -- Using Node.js specific build of pdfjs-dist
+import * as pdfjsLib from 'pdfjs-dist/build/pdf.node.js';
 // @ts-ignore
 import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
 
-// Set workerSrc for pdfjs-dist
-try {
-  const version = (pdfjsLib as any).version || '4.0.379'; // Use a recent pdfjs-dist version
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`;
-  console.log(`pdfjs-dist workerSrc set to CDN for parse-job-description: ${pdfjsLib.GlobalWorkerOptions.workerSrc}`);
-} catch (e) {
-  console.error("Critical error setting pdfjsLib.GlobalWorkerOptions.workerSrc in parse-job-description. PDF processing may fail.", e);
-}
-
+// When using 'pdfjs-dist/build/pdf.node.js', explicit workerSrc configuration is typically not needed
+// as it includes a built-in worker thread implementation suitable for Node.js.
 
 async function getFileBuffer(file: File): Promise<Buffer> {
   const arrayBuffer = await file.arrayBuffer();
