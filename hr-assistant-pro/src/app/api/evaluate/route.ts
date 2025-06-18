@@ -7,13 +7,20 @@ import { detectJobType } from '@/lib/jobTypeDetector';
 import { extractJobRequirements } from '@/lib/requirementExtractor';
 import { evaluateCandidate } from '@/lib/candidateEvaluator';
 
-// @ts-ignore -- Using the main build, relying on internal Node.js worker handling
-import * as pdfjsLib from 'pdfjs-dist/build/pdf.js';
-// @ts-ignore
-import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
+import pdfParse from 'pdf-parse-fork';
 
-// DO NOT set pdfjsLib.GlobalWorkerOptions.workerSrc
-// Relying on pdfjs-dist to use its default 'fake' worker for Node.js environments.
+async function parsePdf(buffer: Buffer): Promise<string> {
+  try {
+    const data = await pdfParse(buffer);
+    if (!data.text.trim()) {
+      console.warn('PDF parsing with pdf-parse-fork resulted in empty text content.');
+    }
+    return data.text;
+  } catch (error) {
+    console.error('Error parsing PDF with pdf-parse-fork:', error);
+    throw new Error(`Failed to parse PDF: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
 
 // In-memory cache for evaluation results
 const evaluationCache = new Map<string, any>();
@@ -39,18 +46,7 @@ async function parseResume(file: File): Promise<{ fileName: string; text: string
     let text = '';
 
     if (file.type === 'application/pdf') {
-      const uint8Array = new Uint8Array(fileBuffer);
-      // Note: getDocument can accept various types, including Uint8Array or an object with data.
-      const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
-      const pdfDoc = await loadingTask.promise;
-      let fullText = '';
-      for (let i = 1; i <= pdfDoc.numPages; i++) {
-        const page = await pdfDoc.getPage(i);
-        const textContent = await page.getTextContent();
-        // textContent.items can be an array of TextItem or TextMarkedContent
-        fullText += textContent.items.map((item: TextItem | import('pdfjs-dist/types/src/display/api').TextMarkedContent) => ('str' in item ? (item as TextItem).str : '')).join(' ') + '\n';
-      }
-      text = fullText.trim();
+      text = await parsePdf(fileBuffer);
     } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       const { value } = await mammoth.extractRawText({ buffer: fileBuffer });
       text = value;

@@ -22,7 +22,7 @@
     "openai": "^4.28.0",
     "p-limit": "^4.0.0",
     "papaparse": "^5.4.1",
-    "pdfjs-dist": "^5.3.31",
+    "pdf-parse-fork": "^1.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.2.3",
