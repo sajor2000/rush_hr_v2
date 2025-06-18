@@ -7,19 +7,23 @@ import { detectJobType } from '@/lib/jobTypeDetector';
 import { extractJobRequirements } from '@/lib/requirementExtractor';
 import { evaluateCandidate } from '@/lib/candidateEvaluator';
 
-import pdfParse from 'pdf-parse-fork';
+import { PdfReader } from 'pdfreader';
 
 async function parsePdf(buffer: Buffer): Promise<string> {
-  try {
-    const data = await pdfParse(buffer);
-    if (!data.text.trim()) {
-      console.warn('PDF parsing with pdf-parse-fork resulted in empty text content.');
-    }
-    return data.text;
-  } catch (error) {
-    console.error('Error parsing PDF with pdf-parse-fork:', error);
-    throw new Error(`Failed to parse PDF: ${error instanceof Error ? error.message : String(error)}`);
-  }
+  return new Promise((resolve, reject) => {
+    let content = "";
+    new PdfReader(null).parseBuffer(buffer, (err, item) => {
+      if (err) {
+        console.error('Error parsing PDF with pdfreader:', err);
+        reject(new Error(`Failed to parse PDF: ${err.message || 'Unknown PDF parsing error'}`));
+      } else if (!item) {
+        // End of buffer, PDF parsing is finished.
+        resolve(content.trim());
+      } else if (item.text) {
+        content += item.text + " "; // Add a space to separate text items
+      }
+    });
+  });
 }
 
 // In-memory cache for evaluation results

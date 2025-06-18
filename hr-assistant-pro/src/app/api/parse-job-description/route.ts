@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mammoth from 'mammoth';
-import pdfParse from 'pdf-parse-fork';
+import { PdfReader } from 'pdfreader';
 
 async function parsePdf(buffer: Buffer): Promise<string> {
-  try {
-    const data = await pdfParse(buffer);
-    if (!data.text.trim()) {
-      console.warn('PDF parsing with pdf-parse-fork resulted in empty text content for job description.');
-    }
-    return data.text;
-  } catch (error) {
-    console.error('Error parsing PDF (job description) with pdf-parse-fork:', error);
-    throw new Error(`Failed to parse PDF (job description): ${error instanceof Error ? error.message : String(error)}`);
-  }
+  return new Promise((resolve, reject) => {
+    let content = "";
+    new PdfReader(null).parseBuffer(buffer, (err, item) => {
+      if (err) {
+        console.error('Error parsing PDF (job description) with pdfreader:', err);
+        reject(new Error(`Failed to parse PDF (job description): ${err.message || 'Unknown PDF parsing error'}`));
+      } else if (!item) {
+        // End of buffer, PDF parsing is finished.
+        resolve(content.trim());
+      } else if (item.text) {
+        content += item.text + " "; // Add a space to separate text items
+      }
+    });
+  });
 }
 
 async function getFileBuffer(file: File): Promise<Buffer> {
