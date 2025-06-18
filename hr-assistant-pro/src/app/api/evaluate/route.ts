@@ -7,13 +7,13 @@ import { detectJobType } from '@/lib/jobTypeDetector';
 import { extractJobRequirements } from '@/lib/requirementExtractor';
 import { evaluateCandidate } from '@/lib/candidateEvaluator';
 
-// @ts-ignore -- Using Node.js specific build of pdfjs-dist
-import * as pdfjsLib from 'pdfjs-dist/build/pdf.node.js';
+// @ts-ignore -- Using the main build, relying on internal Node.js worker handling
+import * as pdfjsLib from 'pdfjs-dist/build/pdf.js';
 // @ts-ignore
 import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
 
-// When using 'pdfjs-dist/build/pdf.node.js', explicit workerSrc configuration is typically not needed
-// as it includes a built-in worker thread implementation suitable for Node.js.
+// DO NOT set pdfjsLib.GlobalWorkerOptions.workerSrc
+// Relying on pdfjs-dist to use its default 'fake' worker for Node.js environments.
 
 // In-memory cache for evaluation results
 const evaluationCache = new Map<string, any>();
