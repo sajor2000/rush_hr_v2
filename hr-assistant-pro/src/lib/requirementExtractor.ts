@@ -2,10 +2,19 @@ import OpenAI from 'openai';
 import { EnhancedJobRequirements, JobType } from '@/types';
 import { jobTypeProfiles } from './jobTypeProfiles';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not set or empty in the environment.');
+  }
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 /**
  * Extracts structured job requirements from a job description using a profile-based prompt.
@@ -18,17 +27,14 @@ export async function extractJobRequirements(
   jobDescription: string,
   jobType: JobType
 ): Promise<EnhancedJobRequirements> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is not set. Please add it to your .env.local file.');
-  }
-
+  const client = getOpenAIClient(); // Ensures API key is checked and client is initialized
   const profile = jobTypeProfiles[jobType];
   if (!profile) {
     throw new Error(`No job type profile found for '${jobType}'`);
   }
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await client.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {

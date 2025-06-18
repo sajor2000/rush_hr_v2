@@ -1,11 +1,19 @@
 import OpenAI from 'openai';
 import { JobType } from '@/types';
 
-// Initialize OpenAI client
-// IMPORTANT: Assumes OPENAI_API_KEY is set in your environment variables (.env.local)
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not set or empty in the environment.');
+  }
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 const systemPrompt = `
 You are an expert HR analyst. Your task is to classify a job description into one of three categories: 'entry-level', 'technical', or 'general'.
@@ -25,12 +33,10 @@ Example: {"jobType": "technical"}
  * @throws An error if the API call fails or the response is invalid.
  */
 export async function detectJobType(jobDescription: string): Promise<JobType> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is not set. Please add it to your .env.local file.');
-  }
+  const client = getOpenAIClient(); // Ensures API key is checked and client is initialized
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await client.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {

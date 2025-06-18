@@ -7,10 +7,19 @@ import {
 } from '@/types';
 import { jobTypeProfiles } from './jobTypeProfiles';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not set or empty in the environment.');
+  }
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 const generateSystemPrompt = (): string => {
   return `
@@ -73,14 +82,11 @@ export async function evaluateCandidate(
   fileName: string,
   jobRequirements: EnhancedJobRequirements
 ): Promise<EvaluationResult> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is not set.');
-  }
-
+  const client = getOpenAIClient(); // Ensures API key is checked and client is initialized
   const systemPrompt = generateSystemPrompt();
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await client.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
