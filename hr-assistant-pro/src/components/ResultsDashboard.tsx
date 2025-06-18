@@ -176,12 +176,52 @@ const columns = [
   }),
 ];
 
-export default function ResultsDashboard({ results, jobRequirements }: ResultsDashboardProps) {
+export default function ResultsDashboard({ results: initialResults, jobRequirements }: ResultsDashboardProps) {
+  const processedResults = useMemo(() => {
+    const qualifiedCandidates = initialResults.filter(r => r.mustHavesMet);
+
+    if (qualifiedCandidates.length > 10) {
+      // Sort by preferredQualifications score, descending.
+      // Assuming preferredQualifications is available, e.g., result.scores.preferredQualifications
+      // If not, this sort needs to be adjusted or the data structure updated.
+      qualifiedCandidates.sort((a, b) => b.scores.preferredQualifications - a.scores.preferredQualifications);
+
+      const totalQualified = qualifiedCandidates.length;
+      const quartileSize = Math.ceil(totalQualified / 4);
+
+      const updatedQualifiedCandidates = qualifiedCandidates.map((candidate, index) => {
+        const rank = index + 1;
+        let tier = '';
+        if (rank <= quartileSize) {
+          tier = 'Top Quartile (Top 25%)';
+        } else if (rank <= quartileSize * 2) {
+          tier = 'Upper-Mid Quartile (25-50%)';
+        } else if (rank <= quartileSize * 3) {
+          tier = 'Lower-Mid Quartile (50-75%)';
+        } else {
+          tier = 'Bottom Quartile (Bottom 25%)';
+        }
+        return {
+          ...candidate,
+          quartileTier: tier,
+          quartileRank: rank,
+          totalQualifiedForQuartile: totalQualified,
+        };
+      });
+
+      // Merge back with non-qualified or if qualified <= 10
+      return initialResults.map(originalResult => 
+        updatedQualifiedCandidates.find(uq => uq.candidateId === originalResult.candidateId) || originalResult
+      );
+    }
+    return initialResults; // No changes if not enough qualified candidates
+  }, [initialResults]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const table = useReactTable({
-    data: results,
+    data: processedResults, // Use the processed results with quartile info
+    // data: results, // This line is now replaced by the one above in the useReactTable hook argument
     columns,
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),

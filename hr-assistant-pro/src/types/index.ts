@@ -45,6 +45,7 @@ export interface EvaluationResult {
   candidateName: string;
   scores: {
     overall: number;
+    preferredQualifications: number; // Added for quartile sorting
     professionalism: number;
   };
   mustHavesMet: boolean;
