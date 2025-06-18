@@ -11,14 +11,17 @@ const config: Config = {
     extend: {
       colors: {
         'rush-green': {
-          light: '#E6F5F1',
-          DEFAULT: '#009E74',
-          dark: '#007A5C',
+          light: '#E6F5F1',    // Existing light, kept for now
+          DEFAULT: '#004E25', // New primary Rush Green
+          dark: '#004E25',     // Matching default, can be a darker variant if needed
         },
-        'rush-blue': {
+        'rush-blue': { // Keeping existing rush-blue as is
           light: '#E6F1F5',
           DEFAULT: '#00729A',
           dark: '#005A7B',
+        },
+        'rush-charcoal': { // New Rush Charcoal
+          DEFAULT: '#414042',
         },
         'neutral-gray': {
           lightest: '#F8F9FA',

@@ -225,7 +225,7 @@ export default function Home() {
     // --- Report Header ---
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 79, 113); // Rush Blue
+    doc.setTextColor(0, 78, 37); // RUSH Green #004E25
     doc.text('Candidate Evaluation Report', pageWidth / 2, yPos, { align: 'center' });
     yPos += 10;
 
@@ -245,7 +245,7 @@ export default function Home() {
       // Candidate Header
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 158, 77); // Rush Green
+      doc.setTextColor(0, 78, 37); // RUSH Green #004E25
       doc.text(`${index + 1}. ${result.candidateName}`, 14, yPos);
       
       doc.setFontSize(12);
@@ -310,8 +310,8 @@ export default function Home() {
     <div className="min-h-screen bg-neutral-gray-lightest">
       <header className="bg-white shadow-md">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-rush-blue-dark">HR Assistant Pro</h1>
-          <p className="text-neutral-gray-dark mt-1">Streamline Your Hiring with AI-Powered Resume Evaluation</p>
+          <h1 className="text-3xl font-bold text-rush-green-DEFAULT">HR Assistant Pro</h1>
+          <p className="text-rush-charcoal-DEFAULT mt-1">Streamline Your Hiring with AI-Powered Resume Evaluation</p>
         </div>
       </header>
       <main className="max-w-7xl mx-auto py-10 sm:px-6 lg:px-8 space-y-10">
@@ -320,7 +320,7 @@ export default function Home() {
           {/* Left Column: Inputs */}
           <div className="lg:col-span-1 space-y-8">
             <div className="bg-white p-6 rounded-xl shadow-lg">
-              <h2 className="text-xl font-semibold text-rush-blue-dark mb-4">1. Job Description</h2>
+              <h2 className="text-xl font-semibold text-rush-green-DEFAULT mb-4">1. Job Description</h2>
               <JobDescriptionUploader
                 onFileAccepted={handleJobDescriptionUpload}
                 file={jobDescriptionFile}
@@ -331,19 +331,19 @@ export default function Home() {
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
                 placeholder="Or paste the job description here..."
-                className="w-full h-32 p-3 mt-4 border border-neutral-gray rounded-lg focus:ring-2 focus:ring-rush-green focus:border-rush-green transition"
+                className="w-full h-32 p-3 mt-4 border border-neutral-gray rounded-lg focus:ring-2 focus:ring-rush-green-DEFAULT focus:border-rush-green-DEFAULT transition"
                 disabled={isEvaluating}
               />
             </div>
             <div className="bg-white p-6 rounded-xl shadow-lg">
-              <h2 className="text-xl font-semibold text-rush-blue-dark mb-4">2. Upload Resumes</h2>
+              <h2 className="text-xl font-semibold text-rush-green-DEFAULT mb-4">2. Upload Resumes</h2>
               <ResumeDropzone files={files} setFiles={setFiles} disabled={isEvaluating} />
             </div>
             <ApiKeyTester />
             <button
               onClick={handleEvaluate}
               disabled={!jobDescription || files.length === 0 || isEvaluating}
-              className="w-full py-3 px-4 border border-transparent rounded-lg shadow-md text-lg font-semibold text-white bg-rush-green hover:bg-rush-green-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rush-green transition-transform transform hover:scale-105 disabled:bg-neutral-gray disabled:cursor-not-allowed disabled:transform-none"
+              className="w-full py-3 px-4 border border-transparent rounded-lg shadow-md text-lg font-semibold text-white bg-rush-green-DEFAULT hover:bg-rush-green-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rush-green-DEFAULT transition-transform transform hover:scale-105 disabled:bg-neutral-gray disabled:cursor-not-allowed disabled:transform-none"
             >
               {isEvaluating ? 'Evaluating...' : 'Evaluate Resumes'}
             </button>
@@ -352,13 +352,13 @@ export default function Home() {
           {/* Right Column: Results */}
           <div className="lg:col-span-2">
             <div className="bg-white p-8 rounded-xl shadow-lg min-h-[40rem]">
-              <h2 className="text-2xl font-bold text-rush-blue-dark mb-6">Evaluation Results</h2>
+              <h2 className="text-2xl font-bold text-rush-green-DEFAULT mb-6">Evaluation Results</h2>
               {isEvaluating && (
                 <div className="space-y-4 text-center">
-                  <p className="text-lg font-semibold text-rush-blue-dark">{statusMessage || 'Preparing evaluation...'}</p>
+                  <p className="text-lg font-semibold text-rush-green-DEFAULT">{statusMessage || 'Preparing evaluation...'}</p>
                   <div className="w-full bg-neutral-gray-light rounded-full h-4">
                     <div
-                      className="bg-rush-green h-4 rounded-full transition-all duration-500 ease-out"
+                      className="bg-rush-green-DEFAULT h-4 rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${progressPercentage}%` }}
                     />
                   </div>
@@ -380,14 +380,14 @@ export default function Home() {
                       <button 
                         onClick={handleExportCSV} 
                         disabled={evaluationResults.length === 0}
-                        className="px-5 py-2 border border-rush-green text-sm font-medium rounded-lg text-rush-green hover:bg-rush-green-light transition disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                        className="px-5 py-2 border border-rush-green-DEFAULT text-sm font-medium rounded-lg text-rush-green-DEFAULT hover:bg-rush-green-light transition disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                       >
                         Export to CSV
                       </button>
                       <button 
                         onClick={handleExportPDF} 
                         disabled={evaluationResults.length === 0}
-                        className="px-5 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-rush-blue hover:bg-rush-blue-dark transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        className="px-5 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-rush-green-DEFAULT hover:bg-rush-green-dark transition disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
                         Export to PDF
                       </button>
