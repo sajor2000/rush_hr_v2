@@ -29,7 +29,7 @@ const generateSystemPrompt = (): string => {
 
     **Step 1: Must-Have Qualifications (Non-Negotiable Gate)**
     - First, you MUST verify if the candidate meets ALL of the "must-have" qualifications listed in the job requirements.
-    - If the candidate fails to meet even ONE of these qualifications, they are not a viable candidate. You must assign them to the 'Not Qualified' tier, give them an overall score under 40, and clearly state which must-have requirement was not met in the 'gaps' section. Set 'meetsMinimum' to false.
+    - If the candidate fails to meet even ONE of these qualifications, they are not a viable candidate. You must assign them to the 'Not Qualified' tier, give them an overall score under 40, and clearly state which must-have requirement was not met in the 'gaps' section. Set 'mustHavesMet' to false.
     - If they meet all must-haves, proceed to Step 2.
 
     **Step 2: Preferred Qualifications & Resume Professionalism (Weighted Scoring)**
@@ -59,9 +59,8 @@ const generateSystemPrompt = (): string => {
     {
       "candidateId": "resume_file_name.pdf",
       "candidateName": "Jane Doe",
-      "scores": { "overall": 85, "preferredQualifications": 90, "resumeProfessionalism": 70 },
-      "meetsMinimum": true,
-      "percentile": 0,
+      "scores": { "overall": 85, "preferredQualifications": 90, "professionalism": 70 },
+      "mustHavesMet": true,
       "tier": "Qualified",
       "strengths": ["List of strengths based on preferred qualifications"],
       "gaps": ["List of gaps based on preferred qualifications OR the unmet must-have requirement"],
@@ -107,6 +106,8 @@ export async function evaluateCandidate(
     const evaluation = JSON.parse(result) as EvaluationResult;
     // Ensure the candidateId is set to the file name for tracking
     evaluation.candidateId = fileName;
+    // Include the resume text for chat analysis
+    evaluation.resumeText = resumeText;
 
     return evaluation;
 

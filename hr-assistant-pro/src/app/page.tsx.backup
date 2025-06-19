@@ -13,7 +13,6 @@ import JobDescriptionUploader from '@/components/JobDescriptionUploader';
 import FloatingChatWidget from '@/components/FloatingChatWidget';
 import ApiKeyTester from '@/components/ApiKeyTester';
 import ProcessGuide from '@/components/ProcessGuide';
-import ErrorBoundary from '@/components/ErrorBoundary';
 
 interface JobInfo {
   jobType: JobType;
@@ -458,23 +457,20 @@ export default function Home() {
                   </div>
                 )}
               </div> {/* This closes the mt-6 div that groups results and errors */}
-            </div> {/* This closes the flex-grow overflow-y-auto div */}
+            </div> {/* This closes the flex-grow div */}
           </div> {/* This closes the results card itself (bg-white p-8...) */}
-        </div> {/* This closes the right column div */}
-      </div> {/* This closes the grid container */}
+        </div> {/* This closes the grid container */}
       </main>
       
       {/* Floating Chat Widget */}
-      <ErrorBoundary>
-        <FloatingChatWidget 
-          candidates={evaluationResults}
-          selectedCandidateId={selectedChatCandidate}
-          onCandidateSelect={setSelectedChatCandidate}
-          jobDescription={jobDescription}
-          mustHaveAttributes={mustHaveAttributes}
-          jobInfo={jobInfo}
-        />
-      </ErrorBoundary>
+      <FloatingChatWidget 
+        candidates={evaluationResults}
+        selectedCandidateId={selectedChatCandidate}
+        onCandidateSelect={setSelectedChatCandidate}
+        jobDescription={jobDescription}
+        mustHaveAttributes={mustHaveAttributes}
+        jobInfo={jobInfo}
+      />
     </div>
   );
 }

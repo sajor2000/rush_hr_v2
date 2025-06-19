@@ -65,7 +65,19 @@ class RateLimiter {
 
 export const chatRateLimiter = new RateLimiter(20, 60000); // 20 requests per minute
 
-// Clean up every 5 minutes
-setInterval(() => {
-  chatRateLimiter.cleanup();
-}, 5 * 60 * 1000);
+// Clean up every 5 minutes - only in Node.js environment
+if (typeof window === 'undefined') {
+  const cleanupInterval = setInterval(() => {
+    chatRateLimiter.cleanup();
+  }, 5 * 60 * 1000);
+  
+  // Ensure cleanup on process termination
+  if (process && process.on) {
+    process.on('SIGTERM', () => {
+      clearInterval(cleanupInterval);
+    });
+    process.on('SIGINT', () => {
+      clearInterval(cleanupInterval);
+    });
+  }
+}

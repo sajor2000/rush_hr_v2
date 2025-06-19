@@ -105,7 +105,13 @@ export async function POST(req: NextRequest) {
             // Check cache first
             if (evaluationCache.has(hash)) {
               const cachedResult = evaluationCache.get(hash);
-              controller.enqueue(createSseStream({ ...cachedResult, fromCache: true }, 'evaluation_result'));
+              // Ensure cached results also have resumeText
+              const resultWithResumeText = {
+                ...cachedResult,
+                resumeText: cachedResult.resumeText || resume.text,
+                fromCache: true
+              };
+              controller.enqueue(createSseStream(resultWithResumeText, 'evaluation_result'));
               return;
             }
 
@@ -119,9 +125,14 @@ export async function POST(req: NextRequest) {
             
             try {
               const result = await evaluateCandidate(resume.text, resume.fileName, jobRequirements);
+              // Add resume text to the result for chat functionality
+              const resultWithResumeText = {
+                ...result,
+                resumeText: resume.text
+              };
               // Store result in cache
-              evaluationCache.set(hash, result);
-              controller.enqueue(createSseStream(result, 'evaluation_result'));
+              evaluationCache.set(hash, resultWithResumeText);
+              controller.enqueue(createSseStream(resultWithResumeText, 'evaluation_result'));
             } catch (evalError) {
               const message = evalError instanceof Error ? evalError.message : 'Unknown evaluation error';
               controller.enqueue(createSseStream({ 

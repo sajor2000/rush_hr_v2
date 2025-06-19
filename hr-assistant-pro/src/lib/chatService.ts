@@ -18,9 +18,16 @@ function getOpenAIClient(): OpenAI {
 
 export class ChatService {
   private static readonly RISEN_SYSTEM_PROMPT = `
-You are a professional-grade HR Copilot AI, assisting a human recruiter during post-evaluation review of candidate resumes.
+You are a professional HR Copilot AI, assisting a human recruiter during post-evaluation review of candidate resumes.
 
 ROLE: You act as a context-aware analyst helping HR clarify doubts, explore resume evidence, understand evaluation outcomes, and identify hidden strengths or gaps. You are accurate, transparent, and always grounded in the candidate's actual documents and metadata.
+
+FORMATTING RULES:
+- Use clear, professional language without markdown formatting
+- Never use asterisks for bold or italics
+- Structure responses with clear paragraphs and proper spacing
+- Use "quotation marks" when quoting from resumes
+- Create lists with simple dashes or numbers
 
 INPUTS: You receive candidate information including:
 - Full parsed resume text
@@ -28,34 +35,26 @@ INPUTS: You receive candidate information including:
 - Job description and must-have attributes
 - Semantic similarity scores when available
 
-STEPS:
-1. CLASSIFY USER INTENT:
-   - Resume detail inquiry ("Did they mention AWS?")
-   - Evaluation challenge ("Why weren't they qualified?")
-   - Candidate comparison ("Who's stronger in research?")
-   - Ambiguity check ("Is that gap justified?")
+RESPONSE GUIDELINES:
+1. Start with a direct answer to the question
+2. Provide evidence from the resume when relevant
+3. Use clear paragraph breaks for readability
+4. Quote specific sections when referencing the resume
+5. End with actionable insights when appropriate
 
-2. SEARCH & RETRIEVE EVIDENCE:
-   - Use semantic understanding (not just keyword matches)
-   - Reference evaluation metadata and summaries
-   - Correlate findings with must-have attributes
-
-3. RESPOND WITH CLARITY & EVIDENCE:
-   - Quote or paraphrase from resume directly
-   - Support answers using structured results
-   - Highlight uncertainty if data is missing
-
-4. ADVISE THOUGHTFULLY:
-   - Offer second-layer insights
-   - Surface hidden strengths when justified
-   - Never speculate without basis
+TONE:
+- Professional yet conversational
+- Confident but not overly formal
+- Helpful and constructive
+- Clear and easy to understand
 
 EXPECTATIONS:
 - Be concise, factual, and grounded in resume content
-- Quote relevant resume sections
+- Quote relevant resume sections using quotation marks
 - Align with scoring system logic
 - Never fabricate qualifications
 - When comparing candidates, focus only on requested attributes
+- Avoid speculation without clear evidence
 `;
 
   static async classifyIntent(query: string): Promise<IntentClassificationResult> {
@@ -169,19 +168,42 @@ EXPECTATIONS:
     try {
       const client = getOpenAIClient();
       
+      // Log debug info only in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Chat Service Debug:', {
+          hasCandidate: !!context.candidateName,
+          hasResumeText: !!context.resumeText,
+          hasEvaluation: !!context.evaluationResult,
+          intent: intent.intent,
+          evidenceCount: evidence.length
+        });
+      }
+      
       const contextInfo = [
         context.candidateName ? `Candidate: ${context.candidateName}` : '',
         context.jobDescription ? `Job Description: ${context.jobDescription.substring(0, 500)}...` : '',
         context.mustHaveAttributes ? `Must-Have Attributes: ${context.mustHaveAttributes}` : '',
         context.evaluationResult ? `Evaluation Score: ${context.evaluationResult.scores?.overall || 'N/A'}` : '',
         context.evaluationResult?.tier ? `Tier: ${context.evaluationResult.tier}` : '',
-        context.evaluationResult?.summary ? `Evaluation Summary: ${context.evaluationResult.summary}` : ''
+        context.evaluationResult?.explanation ? `Evaluation Summary: ${context.evaluationResult.explanation}` : ''
       ].filter(Boolean).join('\n');
 
       const evidenceText = evidence.length > 0 
         ? `\nRelevant Evidence:\n${evidence.map(e => `- ${e.content}`).join('\n')}`
         : '\nNo specific evidence found in resume.';
 
+      // Add warning if no resume text in development
+      if (!context.resumeText && process.env.NODE_ENV === 'development') {
+        console.warn('No resume text provided - chat responses will be limited');
+      }
+
+      // Only log API details in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Attempting OpenAI API call with model: gpt-4o-mini');
+        console.log('API Key present:', !!process.env.OPENAI_API_KEY);
+      }
+      
+      const startTime = Date.now();
       const completion = await client.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
@@ -198,10 +220,41 @@ EXPECTATIONS:
         max_tokens: 500
       });
 
-      return completion.choices[0]?.message?.content || 'I apologize, but I cannot provide a response at this time.';
+      const endTime = Date.now();
+      const response = completion.choices[0]?.message?.content || 'I apologize, but I cannot provide a response at this time.';
+      
+      // Log performance metrics only in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('OpenAI API call successful - Response time:', endTime - startTime, 'ms');
+      }
+      
+      return response;
     } catch (error) {
-      console.error('OpenAI API error:', error);
-      return 'I apologize, but I encountered an error while processing your request. Please try again.';
+      // Log error details only in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('OpenAI API error:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        });
+      }
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('401') || error.message.includes('Incorrect API key')) {
+          return 'Authentication failed. Please check that the OpenAI API key is correctly configured.';
+        }
+        if (error.message.includes('429')) {
+          return 'Rate limit exceeded. Please wait a moment and try again.';
+        }
+        if (error.message.includes('insufficient_quota') || error.message.includes('exceeded your current quota')) {
+          return 'OpenAI API quota exceeded. Please check your OpenAI account.';
+        }
+        if (error.message.includes('model')) {
+          return 'Model access error. The API key may not have access to gpt-4o-mini.';
+        }
+      }
+      
+      return 'I apologize, but I encountered an error while processing your request. Please check the server logs for more details.';
     }
   }
 

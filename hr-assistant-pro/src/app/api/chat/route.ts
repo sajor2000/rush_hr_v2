@@ -37,6 +37,9 @@ export async function POST(req: NextRequest) {
       const resetTime = chatRateLimiter.getResetTime(clientIP);
       const remainingTime = Math.ceil((resetTime - Date.now()) / 1000);
       
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Rate limit exceeded for IP:', clientIP);
+      }
       return NextResponse.json(
         { 
           error: 'Rate limit exceeded. Please try again later.',
@@ -56,11 +59,13 @@ export async function POST(req: NextRequest) {
     // Validate environment setup
     const envValidation = ChatService.validateEnvironment();
     if (!envValidation.isValid) {
-      console.error('Environment validation failed:', envValidation.error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Environment validation failed:', envValidation.error);
+      }
       return NextResponse.json(
         { 
           error: 'Chat service is not properly configured. Please check server configuration.',
-          details: envValidation.error
+          details: process.env.NODE_ENV === 'development' ? envValidation.error : 'Configuration error'
         }, 
         { status: 500 }
       );
@@ -68,6 +73,17 @@ export async function POST(req: NextRequest) {
 
     // Parse and validate request body
     const body = await req.json() as ChatRequest;
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Request body received:', {
+        hasQuery: !!body.query,
+        queryLength: body.query?.length,
+        hasCandidateId: !!body.candidateId,
+        hasResumeText: !!body.resumeText,
+        hasEvaluationResult: !!body.evaluationResult
+      });
+    }
+    
     let { 
       query,
       candidateId,
@@ -106,15 +122,11 @@ export async function POST(req: NextRequest) {
     };
 
     // Process chat request using RISEN methodology
-    console.log(`Processing chat query: "${sanitizedQuery.substring(0, 50)}..."`);
-
     // Step 1: Classify Intent
     const intentResult = await ChatService.classifyIntent(sanitizedQuery);
-    console.log(`Intent classified as: ${intentResult.intent} (confidence: ${intentResult.confidence})`);
 
     // Step 2: Search & Retrieve Evidence
     const evidence = await ChatService.searchResume(resumeText || '', sanitizedQuery);
-    console.log(`Found ${evidence.length} pieces of evidence`);
 
     // Step 3: Generate Response
     const response = await ChatService.generateResponse(
@@ -133,11 +145,12 @@ export async function POST(req: NextRequest) {
       suggestions: generateSuggestions(intentResult.intent, context)
     };
 
-    console.log(`Chat response generated successfully`);
     return NextResponse.json(chatResponse);
 
   } catch (error) {
-    console.error('Chat API error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Chat API error:', error);
+    }
     
     // Return appropriate error response
     if (error instanceof Error) {
