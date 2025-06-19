@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Papa from 'papaparse';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -10,6 +10,7 @@ import EvaluationResultCard from '@/components/EvaluationResultCard';
 import AdaptiveResults from '@/components/AdaptiveResults';
 import ResultsDashboard from '@/components/ResultsDashboard';
 import JobDescriptionUploader from '@/components/JobDescriptionUploader';
+import FloatingChatWidget from '@/components/FloatingChatWidget';
 import ApiKeyTester from '@/components/ApiKeyTester';
 import ProcessGuide from '@/components/ProcessGuide';
 
@@ -24,7 +25,8 @@ export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [mustHaveAttributes, setMustHaveAttributes] = useState('');
-  
+  const [selectedChatCandidate, setSelectedChatCandidate] = useState<string>('');
+
   // State for streaming results
   const [jobInfo, setJobInfo] = useState<JobInfo | null>(null);
   const [evaluationResults, setEvaluationResults] = useState<EvaluationResult[]>([]);
@@ -308,6 +310,15 @@ export default function Home() {
 
   const progressPercentage = files.length > 0 ? (progress / files.length) * 100 : 0;
 
+  const handleEvaluationComplete = (results: EvaluationResult[]) => {
+    setEvaluationResults(results);
+    setIsEvaluating(false);
+    // Auto-select first candidate for chat if available
+    if (results.length > 0) {
+      setSelectedChatCandidate(results[0].candidateName || '');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-neutral-gray-lightest">
       <header className="bg-white shadow-md">
@@ -371,8 +382,10 @@ export default function Home() {
 
           {/* Right Column: Results */}
           <div className="lg:col-span-2">
-            <div className="bg-white p-8 rounded-xl shadow-lg min-h-[40rem]">
+            <div className="bg-white p-8 rounded-xl shadow-lg min-h-[40rem] flex flex-col">
+              {/* Existing Results Section (empty div removed) */}
               <h2 className="text-2xl font-bold text-rush-green-DEFAULT mb-6">Evaluation Results</h2>
+              <div className="flex-grow overflow-y-auto"> {/* Wrapper for scrollable/growing content */}
               {isEvaluating && (
                 <div className="space-y-4 text-center">
                   <p className="text-lg font-semibold text-rush-green-DEFAULT">{statusMessage || 'Preparing evaluation...'}</p>
@@ -443,11 +456,22 @@ export default function Home() {
                     </div>
                   </div>
                 )}
-              </div>
-            </div>
-          </div>
-        </div>
+              </div> {/* This closes the mt-6 div that groups results and errors */}
+            </div> {/* This closes the flex-grow overflow-y-auto div */}
+          </div> {/* This closes the results card itself (bg-white p-8...) */}
+        </div> {/* This closes the right column div */}
+      </div> {/* This closes the grid container */}
       </main>
+      
+      {/* Floating Chat Widget */}
+      <FloatingChatWidget 
+        candidates={evaluationResults}
+        selectedCandidateId={selectedChatCandidate}
+        onCandidateSelect={setSelectedChatCandidate}
+        jobDescription={jobDescription}
+        mustHaveAttributes={mustHaveAttributes}
+        jobInfo={jobInfo}
+      />
     </div>
   );
 }

@@ -43,6 +43,7 @@ export interface Skill {
 export interface EvaluationResult {
   candidateId: string;
   candidateName: string;
+  resumeText?: string; // Raw resume text for chat analysis
   scores: {
     overall: number;
     preferredQualifications: number; // Added for quartile sorting

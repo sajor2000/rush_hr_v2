@@ -57,6 +57,41 @@ const config: Config = {
           opacity: '0', /* Start hidden */
         }
       })
+    },
+    function({ addUtilities }: PluginAPI) {
+      const newUtilities = {
+        '.scrollbar-thin': {
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#CBD5E0 #F7FAFC',
+        },
+        '.scrollbar-webkit': {
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: '#F7FAFC',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: '#CBD5E0',
+            borderRadius: '20px',
+            border: '1px solid #F7FAFC',
+          },
+        },
+        '.scrollbar-thin::-webkit-scrollbar': {
+          width: '6px',
+        },
+        '.scrollbar-thin::-webkit-scrollbar-track': {
+          background: '#F1F5F9',
+        },
+        '.scrollbar-thin::-webkit-scrollbar-thumb': {
+          backgroundColor: '#CBD5E0',
+          borderRadius: '20px',
+        },
+        '.scrollbar-thin::-webkit-scrollbar-thumb:hover': {
+          backgroundColor: '#A0AEC0',
+        },
+      }
+      addUtilities(newUtilities)
     }
   ],
 };

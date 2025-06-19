@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
             }
             
             try {
-              const result = await evaluateCandidate(resume.text, resume.fileName, jobRequirements, mustHaveAttributes ?? undefined);
+              const result = await evaluateCandidate(resume.text, resume.fileName, jobRequirements);
               // Store result in cache
               evaluationCache.set(hash, result);
               controller.enqueue(createSseStream(result, 'evaluation_result'));
