@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Papa from 'papaparse';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -23,6 +23,7 @@ export default function Home() {
   const [jobDescriptionFile, setJobDescriptionFile] = useState<File | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [mustHaveAttributes, setMustHaveAttributes] = useState('');
   
   // State for streaming results
   const [jobInfo, setJobInfo] = useState<JobInfo | null>(null);
@@ -122,6 +123,7 @@ export default function Home() {
 
     const formData = new FormData();
     formData.append('jobDescription', jobDescription);
+    formData.append('mustHaveAttributes', mustHaveAttributes);
     files.forEach(file => formData.append('resumes', file));
 
     try {
@@ -336,7 +338,25 @@ export default function Home() {
               />
             </div>
             <div className="bg-white p-6 rounded-xl shadow-lg">
-              <h2 className="text-xl font-semibold text-rush-green-DEFAULT mb-4">2. Upload Resumes</h2>
+              <h2 className="text-xl font-semibold text-rush-green-DEFAULT mb-4">2. Key Must-Have Attributes (Optional)</h2>
+              <label htmlFor="mustHaveAttributes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Please, in this box, type in the must-have qualifications for the job description uploaded from your point of view as an HR professional.
+              </label>
+              <textarea
+                id="mustHaveAttributes"
+                value={mustHaveAttributes}
+                onChange={(e) => setMustHaveAttributes(e.target.value)}
+                placeholder="e.g., 'Must have 5+ years of experience with Node.js AND a PMP certification.'"
+                rows={4}
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-rush-green focus:border-rush-green dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition"
+                disabled={isEvaluating}
+              />
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Please type in easy to understand plain text. These attributes will be critically evaluated.
+              </p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-lg">
+              <h2 className="text-xl font-semibold text-rush-green-DEFAULT mb-4">3. Upload Resumes</h2>
               <ResumeDropzone files={files} setFiles={setFiles} disabled={isEvaluating} />
             </div>
             <ApiKeyTester />
@@ -431,4 +451,3 @@ export default function Home() {
     </div>
   );
 }
-

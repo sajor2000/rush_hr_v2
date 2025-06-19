@@ -69,6 +69,7 @@ async function parseResume(file: File): Promise<{ fileName: string; text: string
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const jobDescription = formData.get('jobDescription') as string;
+  const mustHaveAttributes = formData.get('mustHaveAttributes') as string | null;
   const files = formData.getAll('resumes') as File[];
 
   if (!jobDescription || files.length === 0) {
@@ -117,7 +118,7 @@ export async function POST(req: NextRequest) {
             }
             
             try {
-              const result = await evaluateCandidate(resume.text, resume.fileName, jobRequirements);
+              const result = await evaluateCandidate(resume.text, resume.fileName, jobRequirements, mustHaveAttributes ?? undefined);
               // Store result in cache
               evaluationCache.set(hash, result);
               controller.enqueue(createSseStream(result, 'evaluation_result'));
