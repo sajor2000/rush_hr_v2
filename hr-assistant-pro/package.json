@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "system:check": "node scripts/system-check.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -15,6 +16,7 @@
     "@vercel/blob": "^0.19.0",
     "ai": "^3.0.0",
     "crypto-js": "^4.2.0",
+    "dotenv": "^16.5.0",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "lucide-react": "^0.300.0",

@@ -1,10 +1,15 @@
 import OpenAI from 'openai';
 import { EnhancedJobRequirements, JobType } from '@/types';
 import { jobTypeProfiles } from './jobTypeProfiles';
+import { getAzureOpenAIClient, isUsingAzure, AZURE_CONFIG } from './azureOpenAIClient';
 
 let openai: OpenAI | null = null;
 
 function getOpenAIClient(): OpenAI {
+  if (isUsingAzure()) {
+    return getAzureOpenAIClient() as any;
+  }
+  
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not set or empty in the environment.');
   }
@@ -35,7 +40,7 @@ export async function extractJobRequirements(
 
   try {
     const response = await client.chat.completions.create({
-      model: 'gpt-4o',
+      model: isUsingAzure() ? AZURE_CONFIG.deploymentName : 'gpt-4o',
       messages: [
         {
           role: 'system',
@@ -47,7 +52,9 @@ export async function extractJobRequirements(
         },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.1,
+      temperature: 0.2, // Low temperature for consistent, reliable HR evaluations
+      top_p: 0.90, // Moderate-high top_p for natural language while maintaining focus
+      max_tokens: 4096,
     });
 
     const result = response.choices[0].message.content;

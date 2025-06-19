@@ -11,7 +11,6 @@ import AdaptiveResults from '@/components/AdaptiveResults';
 import ResultsDashboard from '@/components/ResultsDashboard';
 import JobDescriptionUploader from '@/components/JobDescriptionUploader';
 import FloatingChatWidget from '@/components/FloatingChatWidget';
-import ApiKeyTester from '@/components/ApiKeyTester';
 import ProcessGuide from '@/components/ProcessGuide';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
@@ -371,7 +370,6 @@ export default function Home() {
               <h2 className="text-xl font-semibold text-rush-green-DEFAULT mb-4">3. Upload Resumes</h2>
               <ResumeDropzone files={files} setFiles={setFiles} disabled={isEvaluating} />
             </div>
-            <ApiKeyTester />
             <button
               onClick={handleEvaluate}
               disabled={!jobDescription || files.length === 0 || isEvaluating}

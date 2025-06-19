@@ -1,11 +1,16 @@
 // src/lib/chatService.ts
 import OpenAI from 'openai';
 import { ChatIntent, IntentClassificationResult, EvidenceSource, ChatContext } from '@/types/chat';
+import { getAzureOpenAIClient, isUsingAzure, AZURE_CONFIG } from './azureOpenAIClient';
 
 // Ensure OpenAI client is properly initialized
 let openai: OpenAI | null = null;
 
 function getOpenAIClient(): OpenAI {
+  if (isUsingAzure()) {
+    return getAzureOpenAIClient() as any; // Azure client is compatible with OpenAI interface
+  }
+  
   if (!openai) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -170,6 +175,11 @@ EXPECTATIONS:
       
       // Log debug info only in development
       if (process.env.NODE_ENV === 'development') {
+        console.log('💬 Chat Service using:', isUsingAzure() ? 'Azure OpenAI' : 'Standard OpenAI');
+        if (isUsingAzure()) {
+          console.log('   Azure Deployment:', AZURE_CONFIG.deploymentName);
+          console.log('   Azure Endpoint:', AZURE_CONFIG.endpoint);
+        }
         console.log('Chat Service Debug:', {
           hasCandidate: !!context.candidateName,
           hasResumeText: !!context.resumeText,
@@ -205,7 +215,7 @@ EXPECTATIONS:
       
       const startTime = Date.now();
       const completion = await client.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: isUsingAzure() ? AZURE_CONFIG.deploymentName : 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -216,8 +226,9 @@ EXPECTATIONS:
             content: `Context:\n${contextInfo}\n\nQuery: ${query}\n\nIntent: ${intent.intent} (confidence: ${intent.confidence})${evidenceText}\n\nPlease provide a helpful, evidence-based response.`
           }
         ],
-        temperature: 0.3,
-        max_tokens: 500
+        temperature: 0.2, // Low temperature for consistent, reliable HR evaluations
+        top_p: 0.90, // Moderate-high top_p for natural language while maintaining focus
+        max_tokens: 4096
       });
 
       const endTime = Date.now();
@@ -259,6 +270,19 @@ EXPECTATIONS:
   }
 
   static validateEnvironment(): { isValid: boolean; error?: string } {
+    if (isUsingAzure()) {
+      const azureKey = process.env.AZURE_OPENAI_API_KEY;
+      
+      if (!azureKey) {
+        return {
+          isValid: false,
+          error: 'AZURE_OPENAI_API_KEY environment variable is not set'
+        };
+      }
+      
+      return { isValid: true };
+    }
+    
     const apiKey = process.env.OPENAI_API_KEY;
     
     if (!apiKey) {
