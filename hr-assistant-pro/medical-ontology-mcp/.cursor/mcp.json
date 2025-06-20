@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "medical-ontology": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "medical-ontology-mcp@latest"
+      ],
+      "env": {
+        "DATA_PATH": "./data",
+        "LOG_LEVEL": "INFO",
+        "ENABLE_PREPROCESSING": "true"
+      }
+    }
+  }
+}

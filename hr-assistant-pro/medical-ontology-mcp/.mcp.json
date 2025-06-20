@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "medical-ontology": {
+      "command": "python",
+      "args": [
+        "-m", 
+        "medical_ontology_mcp.server"
+      ],
+      "env": {
+        "MCP_DATA_PATH": "./data",
+        "MCP_LOG_LEVEL": "INFO",
+        "MCP_ENABLE_PREPROCESSING": "true",
+        "MCP_CACHE_SIZE": "1000"
+      },
+      "description": "Medical Ontology MCP Server - Clinical terminology search and coding assistance",
+      "capabilities": [
+        "search_medical_terms",
+        "lookup_codes", 
+        "cross_ontology_mapping",
+        "batch_processing"
+      ]
+    }
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "description": "Medical Ontology MCP Server for clinical research and terminology management",
+    "author": "Medical Informatics Research Team",
+    "license": "MIT",
+    "homepage": "https://github.com/medical-informatics/medical-ontology-mcp",
+    "keywords": ["medical", "ontology", "clinical", "terminology", "ICD-10", "SNOMED", "RxNorm", "LOINC"]
+  }
+}

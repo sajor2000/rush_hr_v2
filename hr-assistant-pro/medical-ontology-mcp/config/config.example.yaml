@@ -1,0 +1,76 @@
+# Medical Ontology MCP Server Configuration
+# Copy this file to config.yaml and adjust settings as needed
+
+# Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 8080
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  cors_enabled: true
+  cors_origins: ["*"]
+
+# Data Source Configuration
+data_source:
+  type: "local"  # Options: local, remote, hybrid
+  
+  # Local data configuration
+  local:
+    path: "./data"
+    cache_enabled: true
+    cache_ttl: 3600  # Cache time-to-live in seconds
+  
+  # Remote data configuration (uncomment if using remote)
+  # remote:
+  #   url: "https://ontology-server.institution.edu"
+  #   auth_token: "your-token-here"
+  #   timeout: 30
+  #   retry_count: 3
+
+# Ontology Configuration
+ontologies:
+  - name: "SNOMED"
+    enabled: true
+    version: "2024-01-31"  # Optional: track version
+    index_path: "./indices/snomed"  # Optional: custom index location
+  
+  - name: "ICD10"
+    enabled: true
+    version: "2024"
+    index_path: "./indices/icd10"
+  
+  - name: "RxNorm"
+    enabled: true
+    version: "2024-06"
+    index_path: "./indices/rxnorm"
+  
+  - name: "LOINC"
+    enabled: true
+    version: "2.76"
+    index_path: "./indices/loinc"
+
+# Search Configuration
+search:
+  max_results: 100  # Maximum results per search
+  fuzzy_threshold: 0.8  # Fuzzy matching threshold (0-1)
+  enable_synonyms: true  # Search in synonym terms
+  enable_stemming: true  # Enable word stemming
+
+# Performance Configuration
+performance:
+  max_workers: 4  # Number of worker processes
+  batch_size: 1000  # Batch size for processing
+  index_on_startup: true  # Build search indices on startup
+  preload_cache: false  # Preload common concepts
+
+# Cache Configuration (optional)
+# cache:
+#   type: "redis"  # Options: memory, redis
+#   redis:
+#     host: "localhost"
+#     port: 6379
+#     db: 0
+#     password: ""
+#     key_prefix: "mcp:"
+
+# Optional warning message (e.g., for test data)
+# warning: "This instance is using sample data for testing only. Not for clinical use!"

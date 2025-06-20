@@ -1,0 +1,84 @@
+{
+  "name": "medical-ontology-mcp",
+  "version": "1.0.0",
+  "description": "Model Context Protocol server for medical terminology and clinical coding",
+  "main": "index.js",
+  "bin": {
+    "medical-ontology-mcp": "./bin/medical-ontology-mcp.js",
+    "medical-mcp": "./bin/medical-ontology-mcp.js",
+    "mcp-medical": "./bin/medical-ontology-mcp.js"
+  },
+  "scripts": {
+    "start": "node bin/medical-ontology-mcp.js serve",
+    "configure": "node bin/medical-ontology-mcp.js configure",
+    "preprocess": "node bin/medical-ontology-mcp.js preprocess",
+    "search": "node bin/medical-ontology-mcp.js search",
+    "install": "python3 -m pip install medical-ontology-mcp",
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "keywords": [
+    "medical",
+    "ontology",
+    "clinical",
+    "terminology",
+    "healthcare",
+    "informatics",
+    "ICD-10",
+    "SNOMED",
+    "RxNorm",
+    "LOINC",
+    "MCP",
+    "model-context-protocol",
+    "AI",
+    "research",
+    "coding",
+    "diagnosis",
+    "medication",
+    "laboratory",
+    "FHIR",
+    "HL7"
+  ],
+  "author": {
+    "name": "Medical Informatics Research Team",
+    "email": "contact@medical-ontology-mcp.org"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/sajor2000/mcp_medicalterminology",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sajor2000/mcp_medicalterminology.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sajor2000/mcp_medicalterminology/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  },
+  "files": [
+    "bin/",
+    "scripts/",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
+  "preferGlobal": true,
+  "dependencies": {
+    "commander": "^11.1.0",
+    "chalk": "^4.1.2",
+    "inquirer": "^8.2.6",
+    "ora": "^5.4.1",
+    "cross-spawn": "^7.0.3"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0"
+  },
+  "peerDependencies": {
+    "python3": "*"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/sponsors/medical-informatics"
+  }
+}

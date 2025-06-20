@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Research Team"
+    given-names: "Medical Informatics"
+    affiliation: "Open Source Medical Informatics Project"
+    email: "contact@medical-ontology-mcp.org"
+title: "Medical Ontology MCP Server: An Open Framework for Medical Terminology Services"
+version: 1.0.0
+date-released: 2024-01-01
+url: "https://github.com/sajor2000/mcp_medicalterminology"
+repository-code: "https://github.com/sajor2000/mcp_medicalterminology"
+license: MIT
+keywords:
+  - medical-ontologies
+  - SNOMED-CT
+  - ICD-10
+  - RxNorm
+  - LOINC
+  - biomedical-informatics
+  - clinical-terminology
+  - MCP
+  - model-context-protocol
+preferred-citation:
+  type: software
+  authors:
+    - family-names: "Research Team"
+      given-names: "Medical Informatics"
+      affiliation: "Open Source Medical Informatics Project"
+  title: "Medical Ontology MCP Server: An Open Framework for Medical Terminology Services"
+  url: "https://github.com/sajor2000/mcp_medicalterminology"
+  year: 2024
