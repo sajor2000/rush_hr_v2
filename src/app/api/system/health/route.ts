@@ -89,9 +89,10 @@ export async function GET() {
       }
     };
 
-    // Test Azure/OpenAI connectivity
-    try {
-      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+    // Test Azure/OpenAI connectivity only if API key is configured
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       
       // Test different services
       const services = [
@@ -119,12 +120,21 @@ export async function GET() {
         result.status = 'unhealthy';
       }
 
-    } catch (error) {
+      } catch (error) {
+        result.status = 'unhealthy';
+        result.services.push({
+          name: 'AI Service Connection',
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Failed to connect to AI service'
+        });
+      }
+    } else {
+      // No API key configured
       result.status = 'unhealthy';
       result.services.push({
-        name: 'AI Service Connection',
+        name: 'OpenAI API',
         status: 'error',
-        error: error instanceof Error ? error.message : 'Failed to connect to AI service'
+        error: 'OPENAI_API_KEY not configured'
       });
     }
 

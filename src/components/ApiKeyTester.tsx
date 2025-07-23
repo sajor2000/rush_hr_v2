@@ -19,29 +19,30 @@ export default function ApiKeyTester({ className = '' }: ApiKeyTesterProps) {
     setTestResult(null);
 
     try {
-      const response = await fetch('/api/system/test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          testType: 'openai',
-        }),
+      const response = await fetch('/api/system/health', {
+        method: 'GET',
       });
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.status === 'healthy') {
         setTestResult({
           success: true,
           message: '✅ API Key is working correctly!',
-          details: data.message,
+          details: `All ${data.services?.length || 0} services operational`,
+        });
+      } else if (response.ok && data.status === 'degraded') {
+        const failedServices = data.services?.filter((s: any) => s.status === 'error') || [];
+        setTestResult({
+          success: false,
+          message: '⚠️ API Key works but some services are degraded',
+          details: `${failedServices.length} service(s) failed: ${failedServices.map((s: any) => s.name).join(', ')}`,
         });
       } else {
         setTestResult({
           success: false,
           message: '❌ API Key test failed',
-          details: data.error || 'Unknown error occurred',
+          details: data.error || data.services?.[0]?.error || 'API key not configured or invalid',
         });
       }
     } catch (error) {
