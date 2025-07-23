@@ -300,7 +300,7 @@ export async function POST(req: NextRequest) {
             // Only preprocess if not skipped and tokens exceed threshold
             if (!skipPreprocessing && originalTokens > TOKEN_THRESHOLD) {
               const processedText = preprocessResume(resume.text);
-              const processedTokens = estimateTokens(processedText);
+              // const processedTokens = estimateTokens(processedText); // May use for logging later
               
               // Use processed text only if it retains enough content
               if (processedText.length >= resume.text.length * 0.5) {

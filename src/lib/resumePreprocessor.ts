@@ -34,7 +34,7 @@ export function preprocessResume(resumeText: string): string {
   const sections = extractSections(processed);
   
   // Rebuild with structured format for better parsing
-  return buildStructuredResume(sections);
+  return buildStructuredResume(sections, resumeText);
 }
 
 interface ResumeSections {
@@ -119,7 +119,7 @@ function extractSections(text: string): ResumeSections {
   return sections;
 }
 
-function buildStructuredResume(sections: ResumeSections): string {
+function buildStructuredResume(sections: ResumeSections, originalText: string): string {
   const parts: string[] = [];
   
   // Debug what sections were found
@@ -168,18 +168,18 @@ function buildStructuredResume(sections: ResumeSections): string {
   
   if (process.env.NODE_ENV === 'development') {
     console.log('Extraction summary:', {
-      originalLength: text.length,
+      originalLength: originalText.length,
       extractedLength,
-      extractionRatio: (extractedLength / text.length * 100).toFixed(1) + '%'
+      extractionRatio: (extractedLength / originalText.length * 100).toFixed(1) + '%'
     });
   }
   
   // If extraction failed (less than 30% of original), return original
-  if (extractedLength < text.length * 0.3) {
+  if (extractedLength < originalText.length * 0.3) {
     if (process.env.NODE_ENV === 'development') {
       console.warn('Preprocessing extracted too little content, returning original text');
     }
-    return text;  // Return original instead of poorly extracted version
+    return originalText;  // Return original instead of poorly extracted version
   }
   
   return structuredResult;
