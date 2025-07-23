@@ -9,13 +9,14 @@ import { evaluateCandidate } from '@/lib/candidateEvaluator';
 import { preprocessResume, estimateTokens } from '@/lib/resumePreprocessor';
 
 import { PdfReader } from 'pdfreader';
+import { logger } from '@/lib/logger';
 
 async function parsePdf(buffer: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
     let content = "";
     new PdfReader(null).parseBuffer(buffer, (err, item) => {
       if (err) {
-        console.error('Error parsing PDF with pdfreader:', err);
+        logger.error('PDF parsing failed', err, { fileType: 'pdf' });
         reject(new Error(`Failed to parse PDF: ${err.message || 'Unknown PDF parsing error'}`));
       } else if (!item) {
         // End of buffer, PDF parsing is finished.
@@ -59,13 +60,15 @@ async function parseResume(file: File): Promise<{ fileName: string; text: string
 
     return { fileName: file.name, text, buffer: fileBuffer };
   } catch (error) {
-    console.error(`Error parsing ${file.name}:`, error);
+    logger.error('Resume parsing failed', error, { fileName: file.name });
     const errorMessage = error instanceof Error ? error.message : String(error);
     return { fileName: file.name, text: '', buffer: fileBuffer, error: `Failed to parse file: ${errorMessage}` };
   }
 }
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
+  logger.apiRequest('POST', '/api/evaluate');
   const formData = await req.formData();
   const jobDescription = formData.get('jobDescription') as string;
   const _mustHaveAttributes = formData.get('mustHaveAttributes') as string | null;
@@ -76,6 +79,19 @@ export async function POST(req: NextRequest) {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  // Validate file sizes (max 5MB per file)
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+  for (const file of files) {
+    if (file.size > MAX_FILE_SIZE) {
+      return new Response(JSON.stringify({ 
+        error: `File "${file.name}" exceeds the 5MB size limit. Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB` 
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   const stream = new ReadableStream({
@@ -137,7 +153,11 @@ export async function POST(req: NextRequest) {
             const tokenEstimate = estimateTokens(processedText);
             
             if (process.env.NODE_ENV === 'development') {
-              console.log(`Resume ${resume.fileName}: ~${tokenEstimate} tokens (reduced from ~${estimateTokens(resume.text)})`);
+              logger.debug(`Resume token optimization`, {
+                fileName: resume.fileName,
+                tokensAfter: tokenEstimate,
+                tokensBefore: estimateTokens(resume.text)
+              });
             }
             
             const result = await evaluateCandidate(processedText, resume.fileName, jobRequirements);
@@ -201,10 +221,17 @@ export async function POST(req: NextRequest) {
 
         // Signal completion
         controller.enqueue(createSseStream({ message: 'done' }, 'done'));
+        
+        logger.apiResponse('POST', '/api/evaluate', 200, Date.now() - startTime, {
+          totalResumes: parsedResumes.length,
+          succeeded: completedCount - errorCount,
+          failed: errorCount
+        });
 
       } catch (error) {
         const message = error instanceof Error ? error.message : 'An unexpected error occurred';
         controller.enqueue(createSseStream({ error: message }, 'error'));
+        logger.apiError('POST', '/api/evaluate', error);
       } finally {
         controller.close();
       }
@@ -216,6 +243,20 @@ export async function POST(req: NextRequest) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
     },
   });
 }

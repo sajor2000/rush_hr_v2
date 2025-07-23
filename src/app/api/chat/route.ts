@@ -4,6 +4,14 @@ import { ChatService } from '@/lib/chatService';
 import { ChatRequest, ChatResponse, ChatContext } from '@/types/chat';
 import { chatRateLimiter } from '@/lib/rateLimiter';
 
+// CORS headers configuration
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400',
+};
+
 // Input sanitization helper
 function sanitizeInput(input: string): string {
   return input
@@ -48,6 +56,7 @@ export async function POST(req: NextRequest) {
         { 
           status: 429,
           headers: {
+            ...corsHeaders,
             'Retry-After': remainingTime.toString(),
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': resetTime.toString()
@@ -67,7 +76,10 @@ export async function POST(req: NextRequest) {
           error: 'Chat service is not properly configured. Please check server configuration.',
           details: process.env.NODE_ENV === 'development' ? envValidation.error : 'Configuration error'
         }, 
-        { status: 500 }
+        { 
+          status: 500,
+          headers: corsHeaders
+        }
       );
     }
 
@@ -100,14 +112,20 @@ export async function POST(req: NextRequest) {
     if (!sanitizedQuery || typeof sanitizedQuery !== 'string' || sanitizedQuery.trim().length === 0) {
       return NextResponse.json(
         { error: 'Query is required and must be a non-empty string' }, 
-        { status: 400 }
+        { 
+          status: 400,
+          headers: corsHeaders
+        }
       );
     }
 
     if (sanitizedQuery.length > 1000) {
       return NextResponse.json(
         { error: 'Query is too long. Please limit to 1000 characters.' }, 
-        { status: 400 }
+        { 
+          status: 400,
+          headers: corsHeaders
+        }
       );
     }
 
@@ -145,7 +163,10 @@ export async function POST(req: NextRequest) {
       suggestions: generateSuggestions(intentResult.intent, context)
     };
 
-    return NextResponse.json(chatResponse);
+    return NextResponse.json(chatResponse, {
+      status: 200,
+      headers: corsHeaders
+    });
 
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
@@ -157,14 +178,20 @@ export async function POST(req: NextRequest) {
       if (error.message.includes('API key')) {
         return NextResponse.json(
           { error: 'Authentication failed. Please check API configuration.' },
-          { status: 401 }
+          { 
+            status: 401,
+            headers: corsHeaders
+          }
         );
       }
       
       if (error.message.includes('rate limit')) {
         return NextResponse.json(
           { error: 'Rate limit exceeded. Please try again in a moment.' },
-          { status: 429 }
+          { 
+            status: 429,
+            headers: corsHeaders
+          }
         );
       }
     }
@@ -174,7 +201,10 @@ export async function POST(req: NextRequest) {
         error: 'An unexpected error occurred while processing your request.',
         details: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.message : 'Unknown error' : undefined
       }, 
-      { status: 500 }
+      { 
+        status: 500,
+        headers: corsHeaders
+      }
     );
   }
 }
@@ -210,4 +240,12 @@ function generateSuggestions(intent: string, context: ChatContext): string[] {
   }
   
   return suggestions.slice(0, 3); // Limit to 3 suggestions
+}
+
+// OPTIONS handler for CORS preflight requests
+export async function OPTIONS() {
+  return new NextResponse(null, { 
+    status: 200,
+    headers: corsHeaders
+  });
 }

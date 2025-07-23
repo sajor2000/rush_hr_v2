@@ -211,7 +211,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
                     <details className="text-xs opacity-70">
                       <summary className="cursor-pointer hover:opacity-100">Sources ({message.sources.length})</summary>
                       <ul className="mt-1 pl-4 list-disc">
-                        {message.sources.slice(0, 3).map((source, idx) => (
+                        {message.sources.slice(0, 3).map((source: string, idx: number) => (
                           <li key={idx} className="truncate">{source}</li>
                         ))}
                       </ul>
@@ -270,7 +270,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             placeholder={selectedCandidate 
               ? `Ask about ${selectedCandidate.candidateName}...`
               : 'Ask a question about the evaluation process...'
