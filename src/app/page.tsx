@@ -57,10 +57,10 @@ export default function Home() {
     const rankedResults = qualifiedCandidates.map((candidate, index) => {
       const rank = index + 1;
       let quartileTier = '';
-      if (rank <= q1End) quartileTier = 'Top Qualified (Q1)';
-      else if (rank <= q2End) quartileTier = 'Highly Qualified (Q2)';
-      else if (rank <= q3End) quartileTier = 'Qualified (Q3)';
-      else quartileTier = 'Considerable (Q4)';
+      if (rank <= q1End) quartileTier = 'Q1 - Top 25%';
+      else if (rank <= q2End) quartileTier = 'Q2 - Top 50%';
+      else if (rank <= q3End) quartileTier = 'Q3 - Top 75%';
+      else quartileTier = 'Q4 - Bottom 25%';
       
       return {
         ...candidate,
@@ -257,10 +257,15 @@ export default function Home() {
   const handleExportCSV = () => {
     if (evaluationResults.length === 0 || !jobInfo) return;
 
-    const dataToExport = evaluationResults.map(result => ({
+    // Sort results by score (highest first) before export
+    const sortedResults = [...evaluationResults].sort((a, b) => b.scores.overall - a.scores.overall);
+
+    const dataToExport = sortedResults.map(result => ({
       'Candidate Name': result.candidateName,
       'Overall Score (%)': result.scores.overall,
       'Tier': result.tier,
+      'Quartile': result.quartileTier || 'N/A',
+      'Rank': result.quartileRank || 'N/A',
       'Must-Haves Met': result.mustHavesMet ? 'Yes' : 'No',
       'Strengths': result.strengths.join('; '),
       'Weaknesses': result.gaps.join('; '),
@@ -300,8 +305,46 @@ export default function Home() {
     doc.text(`Job Title: ${jobInfo.jobRequirements.title}`, pageWidth / 2, yPos, { align: 'center' });
     yPos += 15;
 
+    // Sort results by score (highest first) and group by quartile
+    const sortedResults = [...evaluationResults].sort((a, b) => b.scores.overall - a.scores.overall);
+    
+    // Group by quartile
+    const quartileGroups: Record<string, typeof sortedResults> = {
+      'Q1 - Top 25%': [],
+      'Q2 - Top 50%': [],
+      'Q3 - Top 75%': [],
+      'Q4 - Bottom 25%': [],
+      'Not Qualified': []
+    };
+    
+    sortedResults.forEach(result => {
+      const group = result.quartileTier || 'Not Qualified';
+      if (quartileGroups[group]) {
+        quartileGroups[group].push(result);
+      } else {
+        quartileGroups['Not Qualified'].push(result);
+      }
+    });
+
     // --- Report Body ---
-    evaluationResults.forEach((result, index) => {
+    let globalIndex = 0;
+    Object.entries(quartileGroups).forEach(([quartile, candidates]) => {
+      if (candidates.length === 0) return;
+      
+      // Add quartile header
+      if (yPos > pageHeight - 40) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 78, 37);
+      doc.text(quartile, 14, yPos);
+      yPos += 10;
+      
+      candidates.forEach((result) => {
+        globalIndex++;
       if (yPos > pageHeight - 60) { // Margin for footer
         doc.addPage();
         yPos = 20;
@@ -311,12 +354,13 @@ export default function Home() {
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(0, 78, 37); // RUSH Green #004E25
-      doc.text(`${index + 1}. ${result.candidateName}`, 14, yPos);
+      doc.text(`${globalIndex}. ${result.candidateName}`, 14, yPos);
       
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0);
-      doc.text(`Tier: ${result.tier}  |  Overall Score: ${result.scores.overall}%`, 14, yPos + 7);
+      const quartileInfo = result.quartileTier ? ` | ${result.quartileTier}` : '';
+      doc.text(`Tier: ${result.tier}  |  Overall Score: ${result.scores.overall}%${quartileInfo}`, 14, yPos + 7);
       yPos += 15;
 
       doc.setFont('helvetica', 'bold');
@@ -350,10 +394,12 @@ export default function Home() {
       doc.text(explanation, 14, yPos);
       yPos += (explanation.length * 5) + 15;
 
-      if (index < evaluationResults.length - 1) {
+      // Add separator line between candidates within same quartile
+      if (candidates.indexOf(result) < candidates.length - 1) {
         doc.setDrawColor(221, 221, 221);
         doc.line(14, yPos - 8, pageWidth - 14, yPos - 8);
       }
+      });
     });
 
     // --- Report Footer ---
@@ -516,15 +562,6 @@ export default function Home() {
                     {/* Detailed Results Table */}
                     {jobInfo && jobInfo.jobRequirements && (
                         <ResultsDashboard results={evaluationResults} jobRequirements={jobInfo.jobRequirements} />
-                    )}
-                    {/* Temporarily render raw quartile data for verification */}
-                    {evaluationResults.some(r => r.quartileTier) && (
-                      <div className="mt-6 p-4 bg-gray-100 rounded-lg">
-                        <h3 className="text-lg font-semibold">Quartile Ranking Details (Debug):</h3>
-                        <pre className="text-xs whitespace-pre-wrap">
-                          {JSON.stringify(evaluationResults.filter(r => r.quartileTier).map(r => ({ name: r.candidateName, score: r.scores.overall, tier: r.tier, mustHavesMet: r.mustHavesMet, quartile: r.quartileTier, rank: r.quartileRank, totalQ: r.totalQualifiedForQuartile })), null, 2)}
-                        </pre>
-                      </div>
                     )}
 
                   </div>

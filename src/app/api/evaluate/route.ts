@@ -17,32 +17,74 @@ async function parsePdf(buffer: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
     let content = "";
     let itemCount = 0;
+    let pageCount = 0;
     const startTime = Date.now();
+    const contentParts: string[] = [];
     
-    new PdfReader(null).parseBuffer(buffer, (err, item) => {
-      if (err) {
-        logger.error('PDF parsing failed', err, { 
-          fileType: 'pdf',
-          bufferSize: buffer.length,
-          itemsProcessed: itemCount
-        });
-        reject(new Error(`Failed to parse PDF: ${err.message || 'Unknown PDF parsing error'}`));
-      } else if (!item) {
-        // End of buffer, PDF parsing is finished.
-        const duration = Date.now() - startTime;
-        if (process.env.NODE_ENV === 'development') {
-          logger.debug('PDF parsing completed', { 
-            itemCount, 
-            contentLength: content.length,
-            duration 
+    // Safety timeout for PDF parsing (20 seconds)
+    const timeout = setTimeout(() => {
+      logger.warn('PDF parsing taking too long, returning partial content', {
+        itemCount,
+        pageCount,
+        contentLength: content.length
+      });
+      resolve(content.trim() || contentParts.join(' ').trim());
+    }, 20000);
+    
+    try {
+      new PdfReader(null).parseBuffer(buffer, (err, item) => {
+        if (err) {
+          clearTimeout(timeout);
+          logger.error('PDF parsing failed', err, { 
+            fileType: 'pdf',
+            bufferSize: buffer.length,
+            itemsProcessed: itemCount,
+            pagesProcessed: pageCount
           });
+          
+          // Return partial content if available
+          const partialContent = content.trim() || contentParts.join(' ').trim();
+          if (partialContent.length > 100) {
+            logger.info('Returning partial PDF content after error', {
+              contentLength: partialContent.length
+            });
+            resolve(partialContent);
+          } else {
+            reject(new Error(`PDF parsing error: ${err.message || 'Unknown error'}`));
+          }
+        } else if (!item) {
+          // End of buffer, PDF parsing is finished.
+          clearTimeout(timeout);
+          const duration = Date.now() - startTime;
+          const finalContent = content.trim() || contentParts.join(' ').trim();
+          
+          logger.info('PDF parsing completed', { 
+            itemCount, 
+            pageCount,
+            contentLength: finalContent.length,
+            duration,
+            averageItemsPerPage: pageCount > 0 ? Math.round(itemCount / pageCount) : 0
+          });
+          
+          resolve(finalContent);
+        } else if (item.text) {
+          itemCount++;
+          const text = item.text.trim();
+          if (text) {
+            content += text + " ";
+            contentParts.push(text);
+          }
+        } else if (item.page) {
+          pageCount = item.page;
+          // Add page break for better text structure
+          content += "\n\n";
         }
-        resolve(content.trim());
-      } else if (item.text) {
-        itemCount++;
-        content += item.text + " "; // Add a space to separate text items
-      }
-    });
+      });
+    } catch (parseError) {
+      clearTimeout(timeout);
+      logger.error('PDF parser threw exception', parseError);
+      reject(new Error('PDF parser exception'));
+    }
   });
 }
 
@@ -88,11 +130,62 @@ async function parseResume(file: File): Promise<{ fileName: string; text: string
 
   try {
     const text = await parseWithTimeout();
+    
+    // Validate parsed content
+    if (!text || text.trim().length === 0) {
+      logger.warn('Resume parsed but contains no text', { 
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size
+      });
+      return { 
+        fileName: file.name, 
+        text: '', 
+        buffer: fileBuffer, 
+        error: 'File appears to be empty or could not extract text' 
+      };
+    }
+    
+    // Check for minimum content (at least 100 characters)
+    if (text.trim().length < 100) {
+      logger.warn('Resume has very little content', { 
+        fileName: file.name,
+        textLength: text.length,
+        preview: text.substring(0, 50)
+      });
+    }
+    
+    // Log successful parsing
+    logger.info('Resume parsed successfully', {
+      fileName: file.name,
+      textLength: text.length,
+      wordCount: text.split(/\s+/).length
+    });
+    
     return { fileName: file.name, text, buffer: fileBuffer };
   } catch (error) {
-    logger.error('Resume parsing failed', error, { fileName: file.name });
     const errorMessage = error instanceof Error ? error.message : String(error);
-    return { fileName: file.name, text: '', buffer: fileBuffer, error: `Failed to parse file: ${errorMessage}` };
+    
+    // Enhanced error logging with more context
+    logger.error('Resume parsing failed', error, { 
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      errorType: error instanceof Error ? error.name : 'UnknownError',
+      isTimeout: errorMessage.includes('timeout')
+    });
+    
+    // More specific error messages
+    let userFriendlyError = 'Failed to parse file';
+    if (errorMessage.includes('timeout')) {
+      userFriendlyError = 'File took too long to parse (timeout after 30s)';
+    } else if (errorMessage.includes('Unsupported file type')) {
+      userFriendlyError = `Unsupported file type: ${file.type}. Please use PDF or DOCX`;
+    } else if (errorMessage.includes('PDF')) {
+      userFriendlyError = 'PDF parsing error - file may be corrupted or use unsupported features';
+    }
+    
+    return { fileName: file.name, text: '', buffer: fileBuffer, error: userFriendlyError };
   }
 }
 

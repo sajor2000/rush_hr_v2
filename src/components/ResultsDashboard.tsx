@@ -140,17 +140,35 @@ const columns = [
     cell: info => {
       const originalTier = info.getValue();
       const { quartileTier } = info.row.original;
-      const displayValue = quartileTier ? `${originalTier} (${quartileTier})` : originalTier;
-      const tierStyle = {
-        'Top Tier': 'bg-green-100 text-green-800',
-        'Promising': 'bg-blue-100 text-blue-800',
-        'Not a Fit': 'bg-red-100 text-red-800',
-        'Not Qualified': 'bg-gray-100 text-gray-800',
-        'Potential': 'bg-yellow-100 text-yellow-800',
-        'Qualified': 'bg-purple-100 text-purple-800',
-      }[originalTier] || 'bg-stone-100 text-stone-800';
+      
+      // Style based on quartile if available, otherwise use tier
+      let displayStyle = 'bg-stone-100 text-stone-800';
+      
+      if (quartileTier) {
+        // Quartile-based styling
+        const quartileStyles = {
+          'Q1 - Top 25%': 'bg-green-600 text-white font-semibold',
+          'Q2 - Top 50%': 'bg-green-100 text-green-800',
+          'Q3 - Top 75%': 'bg-yellow-100 text-yellow-800',
+          'Q4 - Bottom 25%': 'bg-orange-100 text-orange-800',
+        };
+        displayStyle = quartileStyles[quartileTier] || displayStyle;
+      } else if (originalTier === 'Not Qualified') {
+        displayStyle = 'bg-red-100 text-red-800';
+      }
 
-      return <span className={`px-2 py-1 text-xs font-medium rounded-full ${tierStyle}`}>{displayValue}</span>;
+      return (
+        <div className="flex flex-col gap-1">
+          <span className={`px-2 py-1 text-xs font-medium rounded-full ${displayStyle}`}>
+            {originalTier}
+          </span>
+          {quartileTier && (
+            <span className="text-xs text-gray-600 font-medium">
+              {quartileTier}
+            </span>
+          )}
+        </div>
+      );
     },
   }),
   columnHelper.accessor('explanation', {
@@ -198,13 +216,13 @@ export default function ResultsDashboard({ results: initialResults, jobRequireme
         const rank = index + 1;
         let tier = '';
         if (rank <= quartileSize) {
-          tier = 'Top Quartile (Top 25%)';
+          tier = 'Q1 - Top 25%';
         } else if (rank <= quartileSize * 2) {
-          tier = 'Upper-Mid Quartile (25-50%)';
+          tier = 'Q2 - Top 50%';
         } else if (rank <= quartileSize * 3) {
-          tier = 'Lower-Mid Quartile (50-75%)';
+          tier = 'Q3 - Top 75%';
         } else {
-          tier = 'Bottom Quartile (Bottom 25%)';
+          tier = 'Q4 - Bottom 25%';
         }
         return {
           ...candidate,
@@ -222,7 +240,13 @@ export default function ResultsDashboard({ results: initialResults, jobRequireme
     return initialResults; // No changes if not enough qualified candidates
   }, [initialResults]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [sorting, setSorting] = useState<SortingState>([]);
+  // Default sorting by overall score (descending) to show best candidates first
+  const [sorting, setSorting] = useState<SortingState>([
+    {
+      id: 'scores',
+      desc: true, // Descending order (highest scores first)
+    }
+  ]);
 
   const table = useReactTable({
     data: processedResults, // Use the processed results with quartile info
