@@ -135,9 +135,15 @@ const FloatingChatWidget: React.FC<FloatingChatWidgetProps> = ({
         query: queryText,
         candidateId: selectedCandidate?.candidateName,
         resumeText: selectedCandidate?.resumeText,
-        evaluationResult: selectedCandidate,
+        evaluationResult: {
+          ...selectedCandidate,
+          quartileTier: selectedCandidate?.quartileTier,
+          quartileRank: selectedCandidate?.quartileRank,
+          totalQualifiedForQuartile: selectedCandidate?.totalQualifiedForQuartile,
+        },
         jobDescription: jobDescription || jobInfo?.jobRequirements?.description,
         mustHaveAttributes: mustHaveAttributes || jobInfo?.jobRequirements?.mustHave?.join(', '),
+        jobType: jobInfo?.jobType,
       };
       
       // Log request details only in development

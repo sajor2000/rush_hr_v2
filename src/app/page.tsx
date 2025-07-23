@@ -40,21 +40,20 @@ export default function Home() {
 
   // Function to calculate and apply quartile rankings
   const applyQuartileRanking = (results: EvaluationResult[]): EvaluationResult[] => {
-    const qualifiedCandidates = results.filter(r => r.mustHavesMet === true);
-
-    if (qualifiedCandidates.length === 0) {
-      return results; // No qualified candidates to rank
+    // Apply quartiles to ALL candidates, not just qualified ones
+    if (results.length === 0) {
+      return results;
     }
 
-    // Sort qualified candidates by overall score, descending
-    qualifiedCandidates.sort((a, b) => b.scores.overall - a.scores.overall);
+    // Sort ALL candidates by overall score, descending
+    const sortedCandidates = [...results].sort((a, b) => b.scores.overall - a.scores.overall);
 
-    const totalQualified = qualifiedCandidates.length;
-    const q1End = Math.ceil(totalQualified * 0.25);
-    const q2End = Math.ceil(totalQualified * 0.50);
-    const q3End = Math.ceil(totalQualified * 0.75);
+    const totalCandidates = sortedCandidates.length;
+    const q1End = Math.ceil(totalCandidates * 0.25);
+    const q2End = Math.ceil(totalCandidates * 0.50);
+    const q3End = Math.ceil(totalCandidates * 0.75);
 
-    const rankedResults = qualifiedCandidates.map((candidate, index) => {
+    const rankedResults = sortedCandidates.map((candidate, index) => {
       const rank = index + 1;
       let quartileTier = '';
       if (rank <= q1End) quartileTier = 'Q1 - Top 25%';
@@ -66,17 +65,12 @@ export default function Home() {
         ...candidate,
         quartileRank: rank,
         quartileTier,
-        totalQualifiedForQuartile: totalQualified,
+        totalQualifiedForQuartile: totalCandidates,
       };
     });
 
-    // Merge ranked results back into the original list, preserving original order for non-qualified
-    // or provide a completely new list if only showing qualified ones with quartiles.
-    // For now, let's update the original results array for those who qualified.
-    return results.map(originalResult => {
-      const rankedVersion = rankedResults.find(rr => rr.candidateName === originalResult.candidateName); // Assuming candidateName is unique
-      return rankedVersion || originalResult;
-    });
+    // Return the ranked results directly since we're ranking ALL candidates now
+    return rankedResults;
   };
 
   // Apply quartile ranking when evaluation completes

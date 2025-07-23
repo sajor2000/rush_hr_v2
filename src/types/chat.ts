@@ -17,6 +17,7 @@ export interface ChatRequest {
   jobDescription?: string;
   mustHaveAttributes?: string;
   sessionId?: string;
+  jobType?: string; // entry-level, technical, or general
 }
 
 export interface ChatResponse {
@@ -35,6 +36,8 @@ export type ChatIntent =
   | 'ambiguity_check'           // "Is that gap justified?"
   | 'skill_verification'        // "Where do they show leadership?"
   | 'experience_analysis'       // "How many years of experience?"
+  | 'ranking_explanation'        // "What does Q2 mean?" or "How are quartiles calculated?"
+  | 'scoring_rationale'          // "Why did they score 65?" or "Explain the scoring"
   | 'unknown';
 
 export interface ChatContext {
@@ -45,6 +48,10 @@ export interface ChatContext {
   jobDescription?: string;
   mustHaveAttributes?: string;
   jobRequirements?: any;
+  quartileTier?: string; // Q1-Q4 ranking
+  quartileRank?: number; // Rank within all candidates
+  totalCandidates?: number; // Total candidates evaluated
+  jobType?: string; // entry-level, technical, or general
 }
 
 export interface ChatSession {

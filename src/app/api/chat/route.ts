@@ -102,7 +102,8 @@ export async function POST(req: NextRequest) {
       resumeText,
       evaluationResult,
       jobDescription,
-      mustHaveAttributes 
+      mustHaveAttributes,
+      jobType 
     } = body;
 
     // Input sanitization
@@ -129,14 +130,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Build context
+    // Build context with enhanced ranking information
     const context: ChatContext = {
       candidateId,
       resumeText,
       evaluationResult,
       jobDescription,
       mustHaveAttributes,
-      candidateName: evaluationResult?.candidateName
+      candidateName: evaluationResult?.candidateName,
+      quartileTier: evaluationResult?.quartileTier,
+      quartileRank: evaluationResult?.quartileRank,
+      totalCandidates: evaluationResult?.totalQualifiedForQuartile,
+      jobType: jobType || evaluationResult?.jobType || 'general'
     };
 
     // Process chat request using RISEN methodology
@@ -224,6 +229,9 @@ function generateSuggestions(intent: string, context: ChatContext): string[] {
     case 'evaluation_challenge':
       suggestions.push('What specific gaps led to this evaluation?');
       suggestions.push('How can this candidate improve their profile?');
+      if (context.quartileTier) {
+        suggestions.push(`Why is this candidate in ${context.quartileTier}?`);
+      }
       break;
       
     case 'candidate_comparison':
@@ -231,12 +239,27 @@ function generateSuggestions(intent: string, context: ChatContext): string[] {
       suggestions.push('Who has more relevant experience?');
       break;
       
+    case 'ranking_explanation':
+      suggestions.push('How are quartiles calculated?');
+      suggestions.push(`What's the scoring range for ${context.jobType || 'this'} job type?`);
+      suggestions.push('Are all candidates ranked or just qualified ones?');
+      break;
+      
+    case 'scoring_rationale':
+      suggestions.push(`Why did they score ${context.evaluationResult?.scores?.overall || 'this'}?`);
+      suggestions.push('What factors influenced this score most?');
+      suggestions.push('How does job type affect scoring?');
+      break;
+      
     default:
       if (context.candidateName) {
         suggestions.push(`Tell me about ${context.candidateName}'s background`);
       }
-      suggestions.push('What are the evaluation criteria?');
-      suggestions.push('How was this candidate scored?');
+      if (context.quartileTier) {
+        suggestions.push(`What does ${context.quartileTier} ranking mean?`);
+      }
+      suggestions.push('Explain the scoring methodology');
+      suggestions.push('How was this candidate ranked?');
   }
   
   return suggestions.slice(0, 3); // Limit to 3 suggestions

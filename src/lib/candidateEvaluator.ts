@@ -22,9 +22,15 @@ function getOpenAIClient(): OpenAI {
 const generateSystemPrompt = (jobType: string): string => {
   const basePrompt = `You are an expert HR analyst evaluating resumes for Rush University System for Health. Analyze each candidate comprehensively based on the job type: ${jobType}.
 
+CRITICAL INSTRUCTIONS:
+- EXTRACT THE CANDIDATE'S FULL NAME from the resume (usually at the top)
+- If no name found, use "Name Not Found" but NEVER leave blank
+- CREATE SCORE DISTRIBUTION: Use the full scoring range to differentiate candidates
+- Avoid clustering scores - spread them across the range for better quartile distribution
+
 EVALUATION PROCESS:
 
-1. MUST-HAVE GATE: Check ALL must-have qualifications. If ANY missing → "Not Qualified"`;
+1. MUST-HAVE GATE: Check ALL must-have qualifications. Note missing items but continue scoring`;
 
   // Job type specific prompts
   if (jobType === 'entry-level') {
@@ -45,11 +51,19 @@ EVALUATION PROCESS:
    - Consider availability for required shifts/schedules
    - Don't penalize short work history or limited professional experience
 
-4. ADJUSTED SCORING FOR ENTRY-LEVEL:
-   - Top Tier (85-100): Exceeds basic requirements, shows exceptional potential
-   - Qualified (60-84): Meets requirements, good fit for training
-   - Potential (40-59): Meets most basics, may need extra support
-   - Not Qualified (<40): Missing critical must-haves or availability issues
+4. SCORING DISTRIBUTION FOR ENTRY-LEVEL (20-95 range):
+   - Exceptional (85-95): Outstanding potential, exceeds all expectations
+   - Strong (70-84): Very good fit, ready to excel with training
+   - Good (55-69): Solid candidate, meets core requirements
+   - Fair (40-54): Has potential but needs development
+   - Weak (20-39): Significant gaps but could be considered
+
+IMPORTANT: Differentiate scores! If evaluating multiple candidates:
+- Best candidate: 85-95
+- Second tier: 70-84
+- Middle tier: 55-69
+- Lower tier: 40-54
+- Weakest: 20-39
 
 OUTPUT JSON:
 {
@@ -89,11 +103,20 @@ OUTPUT JSON:
    - Assess system design and architecture experience
    - Value hands-on coding experience and practical implementations
 
-4. TECHNICAL SCORING STANDARDS:
-   - Top Tier (90-100): Expert level, exceeds all technical requirements
-   - Qualified (70-89): Solid technical match, meets core requirements
-   - Potential (50-69): Has foundation but needs upskilling
-   - Not Qualified (<50): Missing critical technical skills
+4. SCORING DISTRIBUTION FOR TECHNICAL (40-100 range):
+   - Expert (90-100): Exceeds all requirements, technical leader material
+   - Senior (80-89): Strong match, can contribute immediately
+   - Mid-level (70-79): Solid skills, meets most requirements
+   - Junior (60-69): Good foundation, some gaps to fill
+   - Entry (50-59): Basic skills present, significant training needed
+   - Weak (40-49): Major skill gaps, risky hire
+
+IMPORTANT: Create clear score separation between candidates!
+- Best technical match: 90-100
+- Strong candidates: 80-89
+- Average candidates: 70-79
+- Below average: 60-69
+- Weakest viable: 40-59
 
 OUTPUT JSON:
 {
@@ -134,11 +157,21 @@ OUTPUT JSON:
    - Review client/stakeholder relationship management
    - Value cross-functional collaboration and influence
 
-4. PROFESSIONAL SCORING STANDARDS:
-   - Top Tier (85-100): Exceptional leader, clear advancement potential
-   - Qualified (65-84): Solid professional, meets requirements well
-   - Potential (45-64): Has experience but may need development
-   - Not Qualified (<45): Missing key professional requirements
+4. SCORING DISTRIBUTION FOR GENERAL/PROFESSIONAL (30-95 range):
+   - Executive (85-95): Exceptional leader, exceeds all requirements
+   - Senior (75-84): Strong professional, ready for challenges
+   - Experienced (65-74): Solid contributor, meets requirements well
+   - Developing (55-64): Good experience, some growth needed
+   - Entry Professional (45-54): Early career, high potential
+   - Weak (30-44): Significant experience gaps
+
+SCORING GUIDANCE: Ensure 10+ point gaps between tiers!
+- Top performer: 85-95
+- High performer: 75-84
+- Solid performer: 65-74
+- Average performer: 55-64
+- Below average: 45-54
+- Weakest: 30-44
 
 OUTPUT JSON:
 {
@@ -202,8 +235,8 @@ export async function evaluateCandidate(
         },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.2, // Low temperature for consistent, reliable HR evaluations
-      top_p: 0.90, // Moderate-high top_p for natural language while maintaining focus
+      temperature: 0.1, // Very low temperature for consistent scoring and reduced clustering
+      top_p: 0.85, // Reduced for more deterministic scoring distribution
       max_tokens: 4096,
     }),
       `evaluate candidate ${fileName}`
@@ -219,6 +252,31 @@ export async function evaluateCandidate(
     evaluation.candidateId = fileName;
     // Include the resume text for chat analysis
     evaluation.resumeText = resumeText;
+    
+    // Fallback name extraction if AI didn't find a name
+    if (!evaluation.candidateName || evaluation.candidateName === 'full name' || evaluation.candidateName === 'Name Not Found') {
+      // Try to extract name from the beginning of resume
+      const namePatterns = [
+        /^([A-Z][a-z]+ [A-Z][a-z]+)/m, // First Last
+        /^([A-Z][a-z]+ [A-Z]\. [A-Z][a-z]+)/m, // First M. Last
+        /^([A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+)/m, // First Middle Last
+        /Name:\s*([^\n]+)/i, // Name: field
+        /^([A-Z][A-Z]+ [A-Z][A-Z]+)/m, // ALL CAPS names
+      ];
+      
+      for (const pattern of namePatterns) {
+        const match = resumeText.match(pattern);
+        if (match && match[1]) {
+          evaluation.candidateName = match[1].trim();
+          break;
+        }
+      }
+      
+      // If still no name found, use filename without extension
+      if (!evaluation.candidateName || evaluation.candidateName === 'full name' || evaluation.candidateName === 'Name Not Found') {
+        evaluation.candidateName = fileName.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+      }
+    }
 
     return evaluation;
 

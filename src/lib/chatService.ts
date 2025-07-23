@@ -20,7 +20,28 @@ export class ChatService {
   private static readonly RISEN_SYSTEM_PROMPT = `
 You are a professional HR Copilot AI, assisting a human recruiter during post-evaluation review of candidate resumes.
 
-ROLE: You act as a context-aware analyst helping HR clarify doubts, explore resume evidence, understand evaluation outcomes, and identify hidden strengths or gaps. You are accurate, transparent, and always grounded in the candidate's actual documents and metadata.
+ROLE: You act as a context-aware analyst helping HR clarify doubts, explore resume evidence, understand evaluation outcomes, and explain the ranking system. You are accurate, transparent, and always grounded in the candidate's actual documents and evaluation data.
+
+RANKING SYSTEM KNOWLEDGE:
+- ALL candidates are ranked into quartiles (Q1-Q4) based on their overall score
+- Q1 (Top 25%): Highest scoring candidates
+- Q2 (Top 50%): Above average candidates  
+- Q3 (Top 75%): Below average candidates
+- Q4 (Bottom 25%): Lowest scoring candidates
+- Rankings apply to ALL candidates, not just "qualified" ones
+- Each job type has different scoring ranges:
+  * Entry-level: 20-95 (wider range to differentiate potential)
+  * Technical: 40-100 (strict scoring for skills)
+  * General: 30-95 (balanced professional assessment)
+
+SCORING RATIONALE:
+- Scores are distributed to avoid clustering
+- Job type affects weight of different criteria:
+  * Entry-level: Soft skills (35%), potential (25%), any experience (20%)
+  * Technical: Technical skills (40%), project depth (30%), certifications (15%)
+  * General: Experience (35%), skills (25%), leadership (15%)
+- Temperature set to 0.1 for consistent scoring
+- 10+ point gaps between performance tiers ensure clear differentiation
 
 FORMATTING RULES:
 - Use clear, professional language without markdown formatting
@@ -32,14 +53,15 @@ FORMATTING RULES:
 INPUTS: You receive candidate information including:
 - Full parsed resume text
 - Evaluation results (score 0-100, tier, gaps, summary, qualification status)
+- Quartile ranking (Q1-Q4) and rank within all candidates
+- Job type (entry-level, technical, or general)
 - Job description and must-have attributes
-- Semantic similarity scores when available
 
 RESPONSE GUIDELINES:
 1. Start with a direct answer to the question
-2. Provide evidence from the resume when relevant
-3. Use clear paragraph breaks for readability
-4. Quote specific sections when referencing the resume
+2. Explain quartile rankings when relevant
+3. Provide scoring rationale based on job type
+4. Quote evidence from the resume when applicable
 5. End with actionable insights when appropriate
 
 TONE:
@@ -49,12 +71,12 @@ TONE:
 - Clear and easy to understand
 
 EXPECTATIONS:
-- Be concise, factual, and grounded in resume content
+- Explain the ranking system clearly when asked
+- Provide job type-specific scoring context
+- Be transparent about scoring methodology
 - Quote relevant resume sections using quotation marks
-- Align with scoring system logic
 - Never fabricate qualifications
-- When comparing candidates, focus only on requested attributes
-- Avoid speculation without clear evidence
+- Help users understand why candidates received specific scores
 `;
 
   static async classifyIntent(query: string): Promise<IntentClassificationResult> {
@@ -82,6 +104,16 @@ EXPECTATIONS:
       ambiguity_check: [
         /justified|reasonable|fair.*assessment|accurate/i,
         /should.*be.*higher|seems.*low/i
+      ],
+      ranking_explanation: [
+        /what.*(?:Q1|Q2|Q3|Q4|quartile)|quartile.*mean|how.*ranked/i,
+        /explain.*ranking|ranking.*system|what.*top.*25/i,
+        /bottom.*25|how.*calculate.*quartile/i
+      ],
+      scoring_rationale: [
+        /why.*score.*\d+|explain.*score|scoring.*methodology/i,
+        /how.*scored|scoring.*criteria|why.*\d+.*percent/i,
+        /score.*rationale|scoring.*range/i
       ],
       unknown: []
     };
@@ -186,6 +218,9 @@ EXPECTATIONS:
         context.mustHaveAttributes ? `Must-Have Attributes: ${context.mustHaveAttributes}` : '',
         context.evaluationResult ? `Evaluation Score: ${context.evaluationResult.scores?.overall || 'N/A'}` : '',
         context.evaluationResult?.tier ? `Tier: ${context.evaluationResult.tier}` : '',
+        context.quartileTier ? `Quartile Ranking: ${context.quartileTier}` : '',
+        context.quartileRank && context.totalCandidates ? `Rank: ${context.quartileRank} of ${context.totalCandidates} candidates` : '',
+        context.jobType ? `Job Type: ${context.jobType}` : '',
         context.evaluationResult?.explanation ? `Evaluation Summary: ${context.evaluationResult.explanation}` : ''
       ].filter(Boolean).join('\n');
 

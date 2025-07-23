@@ -195,49 +195,11 @@ const columns = [
 ];
 
 export default function ResultsDashboard({ results: initialResults, jobRequirements }: ResultsDashboardProps) {
+  // No need to process results here since quartiles are already applied in the parent component
   const processedResults = useMemo(() => {
-    const qualifiedCandidates = initialResults.filter(r => r.mustHavesMet);
-
-    if (qualifiedCandidates.length > 10) {
-      // Sort by preferredQualifications score, descending.
-      // Assuming preferredQualifications is available, e.g., result.scores.preferredQualifications
-      // If not, this sort needs to be adjusted or the data structure updated.
-      qualifiedCandidates.sort((a, b) => {
-        // Use technicalSkills as primary sort, fall back to preferredQualifications or overall
-        const scoreA = a.scores.technicalSkills ?? a.scores.preferredQualifications ?? a.scores.overall;
-        const scoreB = b.scores.technicalSkills ?? b.scores.preferredQualifications ?? b.scores.overall;
-        return scoreB - scoreA;
-      });
-
-      const totalQualified = qualifiedCandidates.length;
-      const quartileSize = Math.ceil(totalQualified / 4);
-
-      const updatedQualifiedCandidates = qualifiedCandidates.map((candidate, index) => {
-        const rank = index + 1;
-        let tier = '';
-        if (rank <= quartileSize) {
-          tier = 'Q1 - Top 25%';
-        } else if (rank <= quartileSize * 2) {
-          tier = 'Q2 - Top 50%';
-        } else if (rank <= quartileSize * 3) {
-          tier = 'Q3 - Top 75%';
-        } else {
-          tier = 'Q4 - Bottom 25%';
-        }
-        return {
-          ...candidate,
-          quartileTier: tier,
-          quartileRank: rank,
-          totalQualifiedForQuartile: totalQualified,
-        };
-      });
-
-      // Merge back with non-qualified or if qualified <= 10
-      return initialResults.map(originalResult => 
-        updatedQualifiedCandidates.find(uq => uq.candidateId === originalResult.candidateId) || originalResult
-      );
-    }
-    return initialResults; // No changes if not enough qualified candidates
+    // Results already have quartile information from parent component
+    // Just ensure they're sorted by score for display
+    return [...initialResults].sort((a, b) => b.scores.overall - a.scores.overall);
   }, [initialResults]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   // Default sorting by overall score (descending) to show best candidates first
