@@ -19,32 +19,37 @@ function getOpenAIClient(): OpenAI {
   return openai;
 }
 
-const generateSystemPrompt = (): string => {
-  return `You are an expert HR analyst evaluating resumes for Rush University System for Health. Analyze each candidate comprehensively.
+const generateSystemPrompt = (jobType: string): string => {
+  const basePrompt = `You are an expert HR analyst evaluating resumes for Rush University System for Health. Analyze each candidate comprehensively based on the job type: ${jobType}.
 
 EVALUATION PROCESS:
 
-1. MUST-HAVE GATE: Check ALL must-have qualifications. If ANY missing → "Not Qualified" (score <40)
+1. MUST-HAVE GATE: Check ALL must-have qualifications. If ANY missing → "Not Qualified"`;
 
-2. DETAILED SCORING (if must-haves met):
-   a) Technical Skills Match (40%): Exact and semantic matching (e.g., Python = Python programming)
-   b) Experience Relevance (30%): Industry alignment, role progression, achievement impact
-   c) Education & Certifications (15%): Degree relevance, certifications, continuous learning
-   d) Soft Skills & Culture Fit (10%): Leadership, teamwork, communication evidence
-   e) Resume Quality (5%): Structure, clarity, quantified achievements
+  // Job type specific prompts
+  if (jobType === 'entry-level') {
+    return basePrompt + `
 
-3. ADVANCED ANALYSIS:
-   - Career progression patterns (promotions, increasing responsibilities)
-   - Industry-specific keywords and technologies
-   - Quantified achievements (percentages, dollar amounts, team sizes)
-   - Employment gaps or job hopping patterns
-   - Hidden strengths not explicitly in requirements
+2. DETAILED SCORING FOR ENTRY-LEVEL POSITIONS (if must-haves met):
+   a) Soft Skills & Availability (35%): Reliability, communication, teamwork, schedule flexibility, customer service orientation
+   b) Basic Qualifications & Potential (25%): Meets minimum requirements, shows growth potential, trainability indicators
+   c) Experience Relevance (20%): ANY relevant experience including part-time, volunteer, internships, school projects
+   d) Education & Training (15%): Relevant education, certifications, training programs, continuous learning
+   e) Resume Quality (5%): Basic clarity and organization (be lenient - entry-level may have simple resumes)
 
-4. SCORING INTELLIGENCE:
-   - Top Tier (90-100): Exceeds requirements, standout candidate
-   - Qualified (70-89): Solid match, meets most preferences
-   - Potential (40-69): Meets basics, development needed
-   - Not Qualified (<40): Missing must-haves or poor fit
+3. ENTRY-LEVEL SPECIFIC ANALYSIS:
+   - Consider ALL experience types: volunteer work, internships, part-time jobs, school projects
+   - Look for transferable skills from unrelated fields
+   - Value attitude and potential over extensive experience
+   - Check for basic computer skills and willingness to learn
+   - Consider availability for required shifts/schedules
+   - Don't penalize short work history or limited professional experience
+
+4. ADJUSTED SCORING FOR ENTRY-LEVEL:
+   - Top Tier (85-100): Exceeds basic requirements, shows exceptional potential
+   - Qualified (60-84): Meets requirements, good fit for training
+   - Potential (40-59): Meets most basics, may need extra support
+   - Not Qualified (<40): Missing critical must-haves or availability issues
 
 OUTPUT JSON:
 {
@@ -66,10 +71,106 @@ OUTPUT JSON:
   "redFlags": ["concerns like gaps, job hopping, etc."],
   "hiringRecommendation": "Strongly recommend/Recommend/Consider/Pass with reasoning"
 }`;
+  } else if (jobType === 'technical') {
+    return basePrompt + `
+
+2. DETAILED SCORING FOR TECHNICAL POSITIONS (if must-haves met):
+   a) Technical Skills Match (40%): Exact and semantic matching of technologies, frameworks, languages, tools
+   b) Experience Relevance (30%): Technical project depth, problem-solving examples, innovation, system design
+   c) Education & Certifications (15%): CS degree, relevant certifications (AWS, Azure, etc.), specialized training
+   d) Soft Skills & Collaboration (10%): Team collaboration, documentation, mentoring, communication of technical concepts
+   e) Portfolio & Code Quality (5%): GitHub contributions, open source, technical blog, code samples
+
+3. TECHNICAL ROLE SPECIFIC ANALYSIS:
+   - Deep dive into specific technologies and versions used
+   - Evaluate complexity of projects and technical challenges solved
+   - Look for continuous learning and staying current with tech
+   - Consider contributions to technical communities
+   - Assess system design and architecture experience
+   - Value hands-on coding experience and practical implementations
+
+4. TECHNICAL SCORING STANDARDS:
+   - Top Tier (90-100): Expert level, exceeds all technical requirements
+   - Qualified (70-89): Solid technical match, meets core requirements
+   - Potential (50-69): Has foundation but needs upskilling
+   - Not Qualified (<50): Missing critical technical skills
+
+OUTPUT JSON:
+{
+  "candidateId": "filename",
+  "candidateName": "full name",
+  "scores": {
+    "overall": number,
+    "technicalSkills": number,
+    "experienceRelevance": number,
+    "educationCertifications": number,
+    "softSkillsCulture": number,
+    "resumeQuality": number
+  },
+  "mustHavesMet": boolean,
+  "tier": "tier name",
+  "strengths": ["top 3-5 standout qualities with evidence"],
+  "gaps": ["specific gaps or growth areas"],
+  "explanation": "Comprehensive 3-4 sentence summary with specific examples",
+  "redFlags": ["concerns like gaps, job hopping, etc."],
+  "hiringRecommendation": "Strongly recommend/Recommend/Consider/Pass with reasoning"
+}`;
+  } else {
+    // General professional roles
+    return basePrompt + `
+
+2. DETAILED SCORING FOR PROFESSIONAL POSITIONS (if must-haves met):
+   a) Experience Relevance (35%): Industry alignment, role progression, leadership, measurable achievements
+   b) Skills Match (25%): Core competencies, domain expertise, specialized knowledge
+   c) Education & Professional Development (20%): Relevant degree, professional certifications, executive education
+   d) Leadership & Soft Skills (15%): Team management, strategic thinking, communication, stakeholder management
+   e) Resume Quality (5%): Professional presentation, quantified achievements, clear career narrative
+
+3. PROFESSIONAL ROLE SPECIFIC ANALYSIS:
+   - Evaluate management and leadership experience
+   - Look for strategic thinking and business impact
+   - Assess industry knowledge and domain expertise
+   - Consider budget management and P&L responsibility
+   - Review client/stakeholder relationship management
+   - Value cross-functional collaboration and influence
+
+4. PROFESSIONAL SCORING STANDARDS:
+   - Top Tier (85-100): Exceptional leader, clear advancement potential
+   - Qualified (65-84): Solid professional, meets requirements well
+   - Potential (45-64): Has experience but may need development
+   - Not Qualified (<45): Missing key professional requirements
+
+OUTPUT JSON:
+{
+  "candidateId": "filename",
+  "candidateName": "full name",
+  "scores": {
+    "overall": number,
+    "technicalSkills": number,
+    "experienceRelevance": number,
+    "educationCertifications": number,
+    "softSkillsCulture": number,
+    "resumeQuality": number
+  },
+  "mustHavesMet": boolean,
+  "tier": "tier name",
+  "strengths": ["top 3-5 standout qualities with evidence"],
+  "gaps": ["specific gaps or growth areas"],
+  "explanation": "Comprehensive 3-4 sentence summary with specific examples",
+  "redFlags": ["concerns like gaps, job hopping, etc."],
+  "hiringRecommendation": "Strongly recommend/Recommend/Consider/Pass with reasoning"
+}`;
+  }
 };
 
 /**
  * Evaluates a single candidate's resume against the job requirements.
+ * 
+ * The evaluation adapts based on job type:
+ * - Entry-level: Focus on soft skills (35%), potential (25%), any relevant experience (20%)
+ * - Technical: Emphasize technical skills (40%), project experience (30%), certifications (15%)
+ * - General: Balance experience (35%), skills (25%), education (20%), leadership (15%)
+ * 
  * @param resumeText The full text of the candidate's resume.
  * @param fileName The original file name of the resume, used as a candidate ID.
  * @param jobRequirements The structured requirements for the job.
@@ -81,11 +182,12 @@ export async function evaluateCandidate(
   jobRequirements: EnhancedJobRequirements
 ): Promise<EvaluationResult> {
   const client = getOpenAIClient(); // Ensures API key is checked and client is initialized
-  const systemPrompt = generateSystemPrompt();
+  const systemPrompt = generateSystemPrompt(jobRequirements.jobType);
   
   // Log service usage in development
   if (process.env.NODE_ENV === 'development') {
     console.log('📊 Resume Evaluation using: OpenAI API');
+    console.log(`📋 Job Type: ${jobRequirements.jobType} - Using ${jobRequirements.jobType} evaluation criteria`);
   }
 
   try {

@@ -146,7 +146,7 @@ const columns = [
       
       if (quartileTier) {
         // Quartile-based styling
-        const quartileStyles = {
+        const quartileStyles: Record<string, string> = {
           'Q1 - Top 25%': 'bg-green-600 text-white font-semibold',
           'Q2 - Top 50%': 'bg-green-100 text-green-800',
           'Q3 - Top 75%': 'bg-yellow-100 text-yellow-800',
