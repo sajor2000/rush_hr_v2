@@ -78,14 +78,16 @@ EVALUATION PROCESS:
      * Team leadership or training others: +1 point
      * Data accuracy/attention to detail examples: +2 points
      * Flexibility for evenings/weekends: +1 point
+     * Military/veteran experience: +3 points (discipline, reliability, leadership)
 
 5. ENTRY-LEVEL SPECIFIC ANALYSIS:
-   - Consider ALL experience types: volunteer work, internships, part-time jobs, school projects, lab coursework
+   - Consider ALL experience types: volunteer work, internships, part-time jobs, school projects, lab coursework, military service
    - Look for transferable skills from unrelated fields:
      * Customer service → participant interaction
      * Data entry → research documentation
      * Lab coursework → biohazard handling
      * Administrative work → protocol adherence
+     * Military service → discipline, following procedures, attention to detail, teamwork
    - Value attitude and potential over extensive experience
    - Check for basic computer skills and willingness to learn
    - Consider availability for required shifts/schedules
@@ -94,6 +96,7 @@ EVALUATION PROCESS:
    - Any customer service or team experience = valuable
    - Consistent employment history (even different fields) = reliability indicator
    - For healthcare research: value confidentiality awareness, detail orientation, protocol following
+   - Veterans/military: recognize transferable skills (leadership, reliability, working under pressure)
 
 6. SCORING DISTRIBUTION FOR ENTRY-LEVEL (20-100 range with bonus):
    - Exceptional (85-95): Outstanding potential, exceeds all expectations
@@ -290,6 +293,8 @@ export async function evaluateCandidate(
   if (process.env.NODE_ENV === 'development') {
     console.log('📊 Resume Evaluation using: OpenAI API');
     console.log(`📋 Job Type: ${jobRequirements.jobType} - Using ${jobRequirements.jobType} evaluation criteria`);
+    console.log(`📄 Resume content preview (${fileName}):`, resumeText.substring(0, 200) + '...');
+    console.log(`📏 Resume length: ${resumeText.length} characters`);
   }
 
   try {
@@ -300,7 +305,7 @@ export async function evaluateCandidate(
         { role: 'system', content: systemPrompt },
         {
           role: 'user',
-          content: `Please evaluate the following resume:\n\n**Resume File Name:** ${fileName}\n\n**Resume Text:**\n${resumeText}\n\n**Job Requirements:**\n${JSON.stringify(jobRequirements, null, 2)}\n\n**IMPORTANT BONUS POINT INSTRUCTIONS:**\n- Check if candidate meets any preferred qualifications (niceToHave)\n- Check if candidate demonstrates exceptional soft skills (${jobRequirements.softSkills?.join(', ') || 'leadership, teamwork, communication'})\n- Award bonus points accordingly (up to 15 total)\n- List which preferred qualifications they meet\n- List which soft skills they demonstrate`,
+          content: `Please evaluate the following resume:\n\n**Resume File Name:** ${fileName}\n\n**Resume Text:**\n${resumeText}\n\n**Job Requirements:**\n${JSON.stringify(jobRequirements, null, 2)}\n\n**IMPORTANT BONUS POINT INSTRUCTIONS:**\n- Check if candidate meets any preferred qualifications (niceToHave)\n- Check if candidate demonstrates exceptional soft skills (${jobRequirements.softSkills?.join(', ') || 'leadership, teamwork, communication'})\n- Check for military/veteran experience (Army, Navy, Air Force, Marines, Coast Guard, National Guard)\n- Award bonus points accordingly (up to 15 total)\n- List which preferred qualifications they meet\n- List which soft skills they demonstrate\n- Note if candidate is a veteran for bonus consideration`,
         },
       ],
       response_format: { type: 'json_object' },

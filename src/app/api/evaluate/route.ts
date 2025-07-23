@@ -118,8 +118,10 @@ async function parseResume(file: File): Promise<{ fileName: string; text: string
         } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
           const { value } = await mammoth.extractRawText({ buffer: fileBuffer });
           return value;
+        } else if (file.type.startsWith('image/')) {
+          throw new Error('Image files (PNG/JPG/JPEG) are not supported. Please convert to PDF or DOCX format.');
         } else {
-          throw new Error('Unsupported file type');
+          throw new Error(`Unsupported file type: ${file.type}. Only PDF and DOCX files are supported.`);
         }
       })(),
       new Promise<string>((_, reject) => 
@@ -291,15 +293,22 @@ export async function POST(req: NextRequest) {
             const processedText = preprocessResume(resume.text);
             const tokenEstimate = estimateTokens(processedText);
             
+            // If preprocessing severely reduced content, use original
+            const useOriginal = processedText.length < resume.text.length * 0.3;
+            const textToEvaluate = useOriginal ? resume.text : processedText;
+            
             if (process.env.NODE_ENV === 'development') {
               logger.debug(`Resume token optimization`, {
                 fileName: resume.fileName,
                 tokensAfter: tokenEstimate,
-                tokensBefore: estimateTokens(resume.text)
+                tokensBefore: estimateTokens(resume.text),
+                originalLength: resume.text.length,
+                processedLength: processedText.length,
+                usingOriginal: useOriginal
               });
             }
             
-            const result = await evaluateCandidate(processedText, resume.fileName, jobRequirements);
+            const result = await evaluateCandidate(textToEvaluate, resume.fileName, jobRequirements);
             // Add resume text to the result for chat functionality
             const resultWithResumeText = {
               ...result,

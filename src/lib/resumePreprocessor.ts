@@ -1,7 +1,7 @@
 // Resume preprocessing to optimize token usage
 export function preprocessResume(resumeText: string): string {
-  // Remove excessive whitespace
-  let processed = resumeText.replace(/\s+/g, ' ').trim();
+  // Remove excessive horizontal whitespace but preserve line breaks
+  let processed = resumeText.replace(/[ \t]+/g, ' ').trim();
   
   // Remove common boilerplate phrases
   const boilerplatePatterns = [
@@ -46,13 +46,13 @@ interface ResumeSections {
 function extractSections(text: string): ResumeSections {
   const sections: ResumeSections = {};
   
-  // Common section headers
+  // Common section headers - more flexible matching
   const sectionPatterns: { [key: string]: RegExp } = {
     contact: /^(contact|personal information|info)/im,
     summary: /^(summary|objective|profile|professional summary|career objective)/im,
-    experience: /^(experience|work experience|professional experience|employment|work history|career history)/im,
-    education: /^(education|academic|qualifications|degrees)/im,
-    skills: /^(skills|technical skills|core competencies|expertise|technologies)/im,
+    experience: /^(experience|work experience|professional experience|employment|work history|career history|EXPERIENCE)/im,
+    education: /^(education|academic|qualifications|degrees|EDUCATION)/im,
+    skills: /^(skills|technical skills|core competencies|expertise|technologies|SKILLS)/im,
     certifications: /^(certifications?|licenses?|credentials?)/im,
   };
   
@@ -62,6 +62,12 @@ function extractSections(text: string): ResumeSections {
   const sectionContent: { [key: string]: string[] } = {
     other: []
   };
+  
+  // Debug logging in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Resume preprocessing - total lines:', lines.length);
+    console.log('First 5 lines:', lines.slice(0, 5));
+  }
   
   lines.forEach(line => {
     const trimmedLine = line.trim();
@@ -101,6 +107,12 @@ function extractSections(text: string): ResumeSections {
 function buildStructuredResume(sections: ResumeSections): string {
   const parts: string[] = [];
   
+  // Debug what sections were found
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Sections found:', Object.keys(sections).filter(key => sections[key as keyof ResumeSections]));
+    console.log('Section lengths:', Object.entries(sections).map(([key, val]) => `${key}: ${val?.length || 0} chars`));
+  }
+  
   if (sections.contact) {
     parts.push(`CONTACT: ${sections.contact}`);
   }
@@ -127,6 +139,12 @@ function buildStructuredResume(sections: ResumeSections): string {
   
   if (sections.other) {
     parts.push(`ADDITIONAL: ${sections.other}`);
+  }
+  
+  // If very little was extracted, return original text with warning
+  const extractedLength = parts.join('').length;
+  if (extractedLength < 200 && process.env.NODE_ENV === 'development') {
+    console.warn('Very little content extracted from resume preprocessing, might affect evaluation');
   }
   
   return parts.join('\n\n');
