@@ -10,6 +10,8 @@ import { preprocessResume, estimateTokens } from '@/lib/resumePreprocessor';
 
 import { PdfReader } from 'pdfreader';
 import { logger } from '@/lib/logger';
+import { LRUCache } from '@/lib/lruCache';
+import { getCorsHeaders } from '@/lib/corsHeaders';
 
 async function parsePdf(buffer: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -28,8 +30,9 @@ async function parsePdf(buffer: Buffer): Promise<string> {
   });
 }
 
-// In-memory cache for evaluation results
-const evaluationCache = new Map<string, Record<string, unknown>>();
+// In-memory cache for evaluation results with LRU eviction and TTL
+// Max 100 entries, 60 minutes TTL
+const evaluationCache = new LRUCache<string, Record<string, unknown>>(100, 60);
 
 // Limit concurrency for file parsing - increased for 40 resumes
 const parsingLimit = pLimit(15);
@@ -68,7 +71,8 @@ async function parseResume(file: File): Promise<{ fileName: string; text: string
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
-  logger.apiRequest('POST', '/api/evaluate');
+  const origin = req.headers.get('origin');
+  logger.apiRequest('POST', '/api/evaluate', { origin });
   const formData = await req.formData();
   const jobDescription = formData.get('jobDescription') as string;
   const _mustHaveAttributes = formData.get('mustHaveAttributes') as string | null;
@@ -243,20 +247,15 @@ export async function POST(req: NextRequest) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      ...getCorsHeaders(origin),
     },
   });
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(req: NextRequest) {
+  const origin = req.headers.get('origin');
   return new Response(null, {
     status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
+    headers: getCorsHeaders(origin),
   });
 }

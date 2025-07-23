@@ -79,16 +79,24 @@ export default function Home() {
     });
   };
 
+  // Apply quartile ranking when evaluation completes
   useEffect(() => {
     if (!isEvaluating && evaluationResults.length > 0 && !fatalError) {
       // Check if quartile ranking has already been applied to prevent infinite loops
       const alreadyRanked = evaluationResults.some(r => r.quartileTier !== undefined);
       if (!alreadyRanked) {
-        const resultsWithQuartiles = applyQuartileRanking([...evaluationResults]); // Use a copy
-        setEvaluationResults(resultsWithQuartiles);
+        // Use setTimeout to break the synchronous update cycle
+        const timeoutId = setTimeout(() => {
+          const resultsWithQuartiles = applyQuartileRanking([...evaluationResults]);
+          setEvaluationResults(resultsWithQuartiles);
+        }, 0);
+        
+        // Cleanup timeout on unmount or dependency change
+        return () => clearTimeout(timeoutId);
       }
     }
-  }, [isEvaluating, evaluationResults, fatalError]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEvaluating, fatalError]); // evaluationResults intentionally omitted to prevent infinite loops
 
   const handleJobDescriptionUpload = async (file: File) => {
     const formData = new FormData();
@@ -351,7 +359,18 @@ export default function Home() {
     <div className="min-h-screen bg-neutral-gray-lightest">
       <EnhancedHeader />
       <main className="max-w-7xl mx-auto py-10 sm:px-6 lg:px-8 space-y-10">
-        <ProcessGuide />
+        <ErrorBoundary
+          fallback={
+            <div className="p-8 bg-red-50 border border-red-200 rounded-lg">
+              <h2 className="text-lg font-semibold text-red-800">Application Error</h2>
+              <p className="text-red-600 mt-2">
+                The application encountered an error. Please refresh the page to try again.
+              </p>
+            </div>
+          }
+        >
+          <ProcessGuide />
+        </ErrorBoundary>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Left Column: Inputs */}
           <div className="lg:col-span-1 space-y-8">

@@ -39,12 +39,12 @@ export default function EnhancedResultsVisualization({
     );
   }
 
-  // Prepare data for charts
+  // Prepare data for charts with null-safe access to optional fields
   const scoreData = results.map(result => ({
     name: result.candidateName,
     overall: result.scores.overall,
-    professionalism: result.scores.professionalism,
-    preferredQualifications: result.scores.preferredQualifications,
+    professionalism: result.scores.professionalism ?? 0,
+    preferredQualifications: result.scores.preferredQualifications ?? 0,
     tier: result.tier
   }));
 
