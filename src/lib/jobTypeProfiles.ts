@@ -27,9 +27,10 @@ const unifiedExtractionPrompt = `You are an expert HR document parser specializi
   * "Responsibilities" section
   * Professional skills: communication, interpersonal, problem-solving, teamwork, leadership
   * Entry-level skills: following instructions, reliability, attention to detail, physical stamina
+  * Healthcare research skills: confidentiality, discretion, protocol adherence, data accuracy, participant rapport
   * Behavioral requirements: "good interpersonal skills", "neat appearance", "accountability"
   * From specific sections like LEADERSHIP, CRITICAL THINKING, etc.
-  * Look for verbs like: liaising, coordinating, communicating, collaborating, maintaining, operating
+  * Look for verbs like: liaising, coordinating, communicating, collaborating, maintaining, operating, collecting, processing, documenting
 - **physicalRequirements:** Extract physical requirements (entry-level jobs often have these):
   * Look for "must be able to lift/push/pull X pounds"
   * Physical activities: standing, walking, bending, climbing, reaching
@@ -138,6 +139,45 @@ Example 3 - Entry-Level Environmental Services:
     "Must be able to push, pull, and control cleaning equipment up to 150 pounds",
     "Must be able to 10 Step Clean and isolation clean a patient room",
     "Must demonstrate skill in controlling cleaning equipment"
+  ]
+}
+
+Example 4 - Clinical Research Assistant:
+{
+  "title": "Clinical Research Assistant",
+  "summary": "The Clinical Research Assistant will assist with activities of clinical research studies conducted by PI(s) which may include grant-funded, industry sponsored, and investigator-initiated clinical research studies...",
+  "mustHave": [
+    "High School Diploma",
+    "Ability to meet deadlines",
+    "Troubleshoots field issues when necessary. Uses discretion to resolve issues when unplanned events arise",
+    "Detail oriented with high attention to accuracy",
+    "Ability to build rapport, navigate sensitive topics, and maintain confidentiality with a diverse pool of research participants",
+    "Effective verbal and written communication skills",
+    "Ability to collaborate within multi-disciplinary team settings",
+    "Availability to work evenings, overnight and weekends if called for under the study protocols",
+    "Travel may be required"
+  ],
+  "niceToHave": [
+    "Bachelor's degree in Sciences or health-related discipline"
+  ],
+  "softSkills": [
+    "Attention to accuracy",
+    "Building rapport",
+    "Maintaining confidentiality",
+    "Communication skills",
+    "Team collaboration",
+    "Problem-solving",
+    "Discretion",
+    "Flexibility",
+    "Protocol adherence",
+    "Data management",
+    "Participant interaction"
+  ],
+  "education": "High School Diploma",
+  "experienceYears": 0,
+  "physicalRequirements": [
+    "May collect, process and ship potentially biohazardous specimens",
+    "Travel may be required"
   ]
 }`;
 

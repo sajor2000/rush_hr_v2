@@ -70,14 +70,22 @@ EVALUATION PROCESS:
      * High school diploma/GED when not required: +3 points
      * Prior experience in similar role: +4 points
      * Bilingual abilities: +3 points
+     * Science/health-related education (for research roles): +3 points
+     * Research experience (any type): +2 points
    - Exceptional Soft Skills (0-5): 
      * Demonstrated reliability (long tenure, perfect attendance): +2 points
      * Customer service excellence: +2 points
      * Team leadership or training others: +1 point
+     * Data accuracy/attention to detail examples: +2 points
+     * Flexibility for evenings/weekends: +1 point
 
 5. ENTRY-LEVEL SPECIFIC ANALYSIS:
-   - Consider ALL experience types: volunteer work, internships, part-time jobs, school projects
-   - Look for transferable skills from unrelated fields
+   - Consider ALL experience types: volunteer work, internships, part-time jobs, school projects, lab coursework
+   - Look for transferable skills from unrelated fields:
+     * Customer service → participant interaction
+     * Data entry → research documentation
+     * Lab coursework → biohazard handling
+     * Administrative work → protocol adherence
    - Value attitude and potential over extensive experience
    - Check for basic computer skills and willingness to learn
    - Consider availability for required shifts/schedules
@@ -85,6 +93,7 @@ EVALUATION PROCESS:
    - Physical capabilities mentioned = positive indicator
    - Any customer service or team experience = valuable
    - Consistent employment history (even different fields) = reliability indicator
+   - For healthcare research: value confidentiality awareness, detail orientation, protocol following
 
 6. SCORING DISTRIBUTION FOR ENTRY-LEVEL (20-100 range with bonus):
    - Exceptional (85-95): Outstanding potential, exceeds all expectations
