@@ -1,11 +1,8 @@
 import OpenAI from 'openai';
 import {
   EnhancedJobRequirements,
-  EnhancedCandidateProfile,
   EvaluationResult,
-  JobTypeProfile,
 } from '@/types';
-import { jobTypeProfiles } from './jobTypeProfiles';
 import { retryOpenAICall } from './retryUtils';
 
 let openai: OpenAI | null = null;

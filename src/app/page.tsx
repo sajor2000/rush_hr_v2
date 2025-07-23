@@ -1,21 +1,21 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import ResumeDropzone from '@/components/ResumeDropzone';
 import { JobType, EvaluationResult, EnhancedJobRequirements } from '@/types';
-import EvaluationResultCard from '@/components/EvaluationResultCard';
-import AdaptiveResults from '@/components/AdaptiveResults';
+
 import ResultsDashboard from '@/components/ResultsDashboard';
 import JobDescriptionUploader from '@/components/JobDescriptionUploader';
 import FloatingChatWidget from '@/components/FloatingChatWidget';
 import ProcessGuide from '@/components/ProcessGuide';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import EnhancedHeader from '@/components/EnhancedHeader';
-import EnhancedLoading, { CompactLoading } from '@/components/EnhancedLoading';
+import EnhancedLoading from '@/components/EnhancedLoading';
 import EnhancedResultsVisualization from '@/components/EnhancedResultsVisualization';
+import ApiKeyTester from '@/components/ApiKeyTester';
 
 interface JobInfo {
   jobType: JobType;
@@ -131,10 +131,22 @@ export default function Home() {
     formData.append('mustHaveAttributes', mustHaveAttributes);
     files.forEach(file => formData.append('resumes', file));
 
+    let abortController: AbortController | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+
     try {
+      // Create abort controller for timeout protection
+      abortController = new AbortController();
+      
+      // Set a reasonable timeout (10 minutes for large batches)
+      timeoutId = setTimeout(() => {
+        abortController?.abort();
+      }, 10 * 60 * 1000);
+
       const response = await fetch('/api/evaluate', {
         method: 'POST',
         body: formData,
+        signal: abortController.signal,
       });
 
       if (!response.ok || !response.body) {
@@ -145,11 +157,13 @@ export default function Home() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let lastActivity = Date.now();
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
+        lastActivity = Date.now();
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n\n');
         buffer = lines.pop() || ''; // Keep the last, possibly incomplete line
@@ -178,6 +192,14 @@ export default function Home() {
               setEvaluationErrors(prev => ({ ...prev, [data.candidateId]: data.error }));
               setProgress(p => p + 1);
               break;
+            case 'progress_update':
+              if (data.progress !== undefined) {
+                setProgress(data.progress);
+              }
+              if (data.message) {
+                setStatusMessage(data.message);
+              }
+              break;
             case 'error':
               setFatalError(data.error);
               break;
@@ -186,12 +208,22 @@ export default function Home() {
               break;
           }
         }
+
+        // Check for inactivity timeout (30 seconds without activity)
+        if (Date.now() - lastActivity > 30000) {
+          throw new Error('Processing timeout - no activity for 30 seconds');
+        }
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An unknown network error occurred.';
-      setFatalError(errorMessage);
+      if (error instanceof Error && error.name === 'AbortError') {
+        setFatalError('Processing timeout - the evaluation took too long to complete');
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'An unknown network error occurred.';
+        setFatalError(errorMessage);
+      }
       console.error('Evaluation failed:', error);
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       setIsEvaluating(false);
     }
   };
@@ -299,7 +331,7 @@ export default function Home() {
     });
 
     // --- Report Footer ---
-    const pageCount = (doc as any).internal.getNumberOfPages();
+    const pageCount = (doc as unknown as { internal: { getNumberOfPages(): number } }).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(10);
@@ -313,14 +345,7 @@ export default function Home() {
 
   const progressPercentage = files.length > 0 ? (progress / files.length) * 100 : 0;
 
-  const handleEvaluationComplete = (results: EvaluationResult[]) => {
-    setEvaluationResults(results);
-    setIsEvaluating(false);
-    // Auto-select first candidate for chat if available
-    if (results.length > 0) {
-      setSelectedChatCandidate(results[0].candidateName || '');
-    }
-  };
+
 
   return (
     <div className="min-h-screen bg-neutral-gray-lightest">
@@ -368,6 +393,7 @@ export default function Home() {
               <h2 className="text-xl font-semibold text-rush-green mb-4">3. Upload Resumes</h2>
               <ResumeDropzone files={files} setFiles={setFiles} disabled={isEvaluating} />
             </div>
+            <ApiKeyTester />
             <button
               onClick={handleEvaluate}
               disabled={!jobDescription || files.length === 0 || isEvaluating}

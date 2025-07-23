@@ -28,16 +28,14 @@ async function parsePdf(buffer: Buffer): Promise<string> {
 }
 
 // In-memory cache for evaluation results
-const evaluationCache = new Map<string, any>();
+const evaluationCache = new Map<string, Record<string, unknown>>();
 
 // Limit concurrency for file parsing - increased for 40 resumes
 const parsingLimit = pLimit(15);
-// Optimized for 40 resumes: 5 concurrent API calls with smart batching
-const evaluationLimit = pLimit(5);
 
 // Helper to encode SSE messages
 const encoder = new TextEncoder();
-function createSseStream(data: any, eventName?: string) {
+function createSseStream(data: unknown, eventName?: string) {
   let message = `data: ${JSON.stringify(data)}\n\n`;
   if (eventName) {
     message = `event: ${eventName}\n${message}`;
@@ -70,7 +68,7 @@ async function parseResume(file: File): Promise<{ fileName: string; text: string
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const jobDescription = formData.get('jobDescription') as string;
-  const mustHaveAttributes = formData.get('mustHaveAttributes') as string | null;
+  const _mustHaveAttributes = formData.get('mustHaveAttributes') as string | null;
   const files = formData.getAll('resumes') as File[];
 
   if (!jobDescription || files.length === 0) {
@@ -101,21 +99,27 @@ export async function POST(req: NextRequest) {
         controller.enqueue(createSseStream({ message: 'Scoring candidates...', total: parsedResumes.length }, 'status_update'));
         
         let completedCount = 0;
-        const evaluationPromises = parsedResumes.map((resume, index) => {
-          return evaluationLimit(async () => {
+        let errorCount = 0;
+        
+        // Process resumes sequentially to avoid overwhelming the API and ensure proper progress tracking
+        for (const resume of parsedResumes) {
+          try {
             const hash = createHash('sha256').update(resume.buffer).digest('hex');
 
             // Check cache first
             if (evaluationCache.has(hash)) {
               const cachedResult = evaluationCache.get(hash);
-              // Ensure cached results also have resumeText
-              const resultWithResumeText = {
-                ...cachedResult,
-                resumeText: cachedResult.resumeText || resume.text,
-                fromCache: true
-              };
-              controller.enqueue(createSseStream(resultWithResumeText, 'evaluation_result'));
-              return;
+              if (cachedResult) {
+                // Ensure cached results also have resumeText
+                const resultWithResumeText = {
+                  ...cachedResult,
+                  resumeText: (cachedResult.resumeText as string) || resume.text,
+                  fromCache: true
+                };
+                controller.enqueue(createSseStream(resultWithResumeText, 'evaluation_result'));
+                completedCount++;
+                continue;
+              }
             }
 
             if (resume.error || !resume.text) {
@@ -123,57 +127,65 @@ export async function POST(req: NextRequest) {
                 candidateId: resume.fileName, 
                 error: `Failed to parse: ${resume.error || 'Empty content'}` 
               }, 'evaluation_error'));
-              return;
+              errorCount++;
+              completedCount++;
+              continue;
             }
             
-            try {
-              // Preprocess resume to optimize tokens
-              const processedText = preprocessResume(resume.text);
-              const tokenEstimate = estimateTokens(processedText);
-              
-              if (process.env.NODE_ENV === 'development') {
-                console.log(`Resume ${resume.fileName}: ~${tokenEstimate} tokens (reduced from ~${estimateTokens(resume.text)})`);
-              }
-              
-              const result = await evaluateCandidate(processedText, resume.fileName, jobRequirements);
-              // Add resume text to the result for chat functionality
-              const resultWithResumeText = {
-                ...result,
-                resumeText: resume.text
-              };
-              // Store result in cache
-              evaluationCache.set(hash, resultWithResumeText);
-              controller.enqueue(createSseStream(resultWithResumeText, 'evaluation_result'));
-              
-              // Update progress every 10 resumes for 40 resume batches
-              completedCount++;
-              if (completedCount % 10 === 0 || completedCount === parsedResumes.length) {
-                const percentage = Math.round((completedCount / parsedResumes.length) * 100);
-                controller.enqueue(createSseStream({ 
-                  message: `Evaluated ${completedCount} of ${parsedResumes.length} resumes (${percentage}%)...`,
-                  progress: completedCount,
-                  total: parsedResumes.length,
-                  percentage: percentage
-                }, 'progress_update'));
-              }
-            } catch (evalError) {
-              const message = evalError instanceof Error ? evalError.message : 'Unknown evaluation error';
-              // Track failed evaluation for potential retry
-              completedCount++;
-              controller.enqueue(createSseStream({ 
-                candidateId: resume.fileName, 
-                error: message,
-                retryable: !message.includes('API key') && !message.includes('401')
-              }, 'evaluation_error'));
+            // Preprocess resume to optimize tokens
+            const processedText = preprocessResume(resume.text);
+            const tokenEstimate = estimateTokens(processedText);
+            
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Resume ${resume.fileName}: ~${tokenEstimate} tokens (reduced from ~${estimateTokens(resume.text)})`);
             }
-          });
-        });
-
-        const results = await Promise.allSettled(evaluationPromises);
+            
+            const result = await evaluateCandidate(processedText, resume.fileName, jobRequirements);
+            // Add resume text to the result for chat functionality
+            const resultWithResumeText = {
+              ...result,
+              resumeText: resume.text
+            };
+            // Store result in cache
+            evaluationCache.set(hash, resultWithResumeText);
+            controller.enqueue(createSseStream(resultWithResumeText, 'evaluation_result'));
+            
+            completedCount++;
+            
+            // Update progress after each resume
+            const percentage = Math.round((completedCount / parsedResumes.length) * 100);
+            controller.enqueue(createSseStream({ 
+              message: `Evaluated ${completedCount} of ${parsedResumes.length} resumes (${percentage}%)...`,
+              progress: completedCount,
+              total: parsedResumes.length,
+              percentage: percentage
+            }, 'progress_update'));
+            
+          } catch (evalError) {
+            const message = evalError instanceof Error ? evalError.message : 'Unknown evaluation error';
+            errorCount++;
+            completedCount++;
+            
+            controller.enqueue(createSseStream({ 
+              candidateId: resume.fileName, 
+              error: message,
+              retryable: !message.includes('API key') && !message.includes('401')
+            }, 'evaluation_error'));
+            
+            // Update progress even on error
+            const percentage = Math.round((completedCount / parsedResumes.length) * 100);
+            controller.enqueue(createSseStream({ 
+              message: `Evaluated ${completedCount} of ${parsedResumes.length} resumes (${percentage}%)...`,
+              progress: completedCount,
+              total: parsedResumes.length,
+              percentage: percentage
+            }, 'progress_update'));
+          }
+        }
         
         // Count successes and failures
-        const successCount = results.filter(r => r.status === 'fulfilled').length;
-        const failureCount = results.filter(r => r.status === 'rejected').length;
+        const successCount = completedCount - errorCount;
+        const failureCount = errorCount;
         
         // Send batch summary
         if (failureCount > 0) {

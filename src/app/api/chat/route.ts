@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
       });
     }
     
-    let { 
+    const { 
       query,
       candidateId,
       resumeText,

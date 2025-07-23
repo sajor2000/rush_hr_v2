@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 interface HealthCheckResult {
@@ -61,13 +61,13 @@ async function testService(
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const startTime = Date.now();
   
   try {
     // Get system info
     const memoryUsage = process.memoryUsage();
-    const totalMemory = require('os').totalmem();
+    const totalMemory = (await import('os')).totalmem();
     const usedMemory = memoryUsage.heapUsed + memoryUsage.external;
     
     const result: HealthCheckResult = {

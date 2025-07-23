@@ -5,7 +5,7 @@ declare module 'pdf-parse-fork' {
     render: (options: any) => Promise<void>;
   }
 
-  interface PDFDocument {
+  interface _PDFDocument {
     numPages: number;
     getPage: (pageNumber: number) => Promise<PDFPage>;
     destroy: () => Promise<void>;

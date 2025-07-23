@@ -3,22 +3,19 @@
 import React from 'react';
 import { EvaluationResult } from '@/types';
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell,
-  LineChart,
-  Line
+  Cell
 } from 'recharts';
 import { 
-  ArrowTrendingUpIcon, 
-  ArrowTrendingDownIcon,
+  ArrowTrendingUpIcon,
   UserGroupIcon,
   CheckCircleIcon,
   XCircleIcon,
@@ -27,12 +24,11 @@ import {
 
 interface EnhancedResultsVisualizationProps {
   results: EvaluationResult[];
-  jobRequirements?: any;
+  jobRequirements?: unknown;
 }
 
 export default function EnhancedResultsVisualization({ 
-  results, 
-  jobRequirements 
+  results
 }: EnhancedResultsVisualizationProps) {
   if (!results || results.length === 0) {
     return (
@@ -100,16 +96,19 @@ export default function EnhancedResultsVisualization({
     }
   }
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: unknown[]; label?: string }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
           <p className="font-semibold text-gray-800">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.value}%
-            </p>
-          ))}
+          {payload.map((entry: unknown, index: number) => {
+            const typedEntry = entry as { name: string; value: number; color: string };
+            return (
+              <p key={index} className="text-sm" style={{ color: typedEntry.color }}>
+                {typedEntry.name}: {typedEntry.value}%
+              </p>
+            );
+          })}
         </div>
       );
     }

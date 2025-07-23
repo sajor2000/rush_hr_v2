@@ -59,7 +59,7 @@ function extractSections(text: string): ResumeSections {
   // Split text into lines for processing
   const lines = text.split(/\n/);
   let currentSection = 'other';
-  let sectionContent: { [key: string]: string[] } = {
+  const sectionContent: { [key: string]: string[] } = {
     other: []
   };
   

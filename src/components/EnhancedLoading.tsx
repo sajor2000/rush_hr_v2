@@ -27,10 +27,8 @@ interface EnhancedLoadingProps {
 
 export default function EnhancedLoading({
   isVisible,
-  currentStep,
   progress = 0,
   statusMessage = 'Processing...',
-  totalSteps = 3,
   onCancel
 }: EnhancedLoadingProps) {
   if (!isVisible) return null;
@@ -135,7 +133,7 @@ export default function EnhancedLoading({
 
         {/* Steps */}
         <div className="px-6 pb-6 space-y-3">
-          {steps.map((step, index) => (
+          {steps.map((step) => (
             <div key={step.id} className={getStepClasses(step)}>
               <div className="flex-shrink-0">
                 {getStepIcon(step)}
