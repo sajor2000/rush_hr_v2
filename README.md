@@ -1,80 +1,175 @@
-# HR Assistant Pro
+# Rush University HR Assistant
 
-HR Assistant Pro is an AI-powered application designed to streamline the hiring process by automatically evaluating candidate resumes against job descriptions. It leverages OpenAI's GPT models to provide ranked results, detailed analysis, and professional reports, tailored to the hiring methodology of Rush University System for Health.
+An AI-powered resume evaluation system designed specifically for Rush University System for Health. This application streamlines the hiring process by automatically analyzing resumes against job descriptions, providing ranked results, detailed scoring, and an interactive HR copilot chat assistant.
 
-## Key Features
+## 🚀 Quick Start
 
--   **AI-Powered Evaluation:** Analyzes resumes based on job requirements, including must-have and preferred qualifications.
--   **Structured Output:** Provides a ranked list of candidates with scores, tiers (Top Tier, Qualified, etc.), strengths, weaknesses, and resume professionalism assessment.
--   **Customizable Logic:** Evaluation criteria are aligned with specific HR methodologies.
--   **Job Description Parsing:** Accepts job descriptions via text input or file upload.
--   **Batch Resume Processing:** Handles multiple resumes (PDF, DOCX) simultaneously.
--   **Professional Reports:** Exports results to well-formatted CSV and PDF files.
--   **Branded UI:** User interface styled with Rush University branding.
+### Prerequisites
+- Node.js 18.x or later
+- npm (or yarn/pnpm/bun)
+- OpenAI API key with access to GPT-4o and GPT-4o-mini models
 
-## Prerequisites
+### Local Development
 
--   Node.js (v18.x or later recommended)
--   npm, yarn, pnpm, or bun (for package management)
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/sajor2000/rush_hr_v2.git
+   cd rush_hr_v2
+   ```
 
-## Getting Started
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <repository-url>
-    cd hr-assistant-pro
-    ```
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   Edit `.env.local` and add your OpenAI API key:
+   ```
+   OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxx
+   ```
 
-2.  **Install dependencies:**
-    Choose your preferred package manager:
-    ```bash
-    npm install
-    # or
-    yarn install
-    # or
-    pnpm install
-    # or
-    bun install
-    ```
+4. **Run the development server**
+   ```bash
+   npm run dev
+   ```
 
-3.  **Set up environment variables:**
-    Copy the example environment file to a new local environment file:
-    ```bash
-    cp .env.example .env.local
-    ```
-    Open `.env.local` and add your OpenAI API key:
-    ```
-    OPENAI_API_KEY=your_openai_api_key_here
-    ```
-    *Note: Ensure your OpenAI account has sufficient credits and access to the models used (e.g., GPT-4 Turbo).*
+5. **Open the application**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-4.  **Run the development server:**
-    ```bash
-    npm run dev
-    # or
-    yarn dev
-    # or
-    pnpm dev
-    # or
-    bun dev
-    ```
+## 🌐 Deployment on Vercel
 
-5.  Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
+### One-Click Deploy
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/sajor2000/rush_hr_v2)
 
-## Deployment on Vercel
+### Manual Deployment
 
-The easiest way to deploy this Next.js application is to use the [Vercel Platform](https://vercel.com/) from the creators of Next.js.
+1. **Push to GitHub**
+   ```bash
+   git push origin main
+   ```
 
-1.  Push your code to a GitHub repository.
-2.  Import your project into Vercel from your GitHub repository.
-3.  **Configure Environment Variables:** In your Vercel project settings, add the `OPENAI_API_KEY` with your OpenAI API key as its value.
-4.  Vercel will automatically build and deploy your application. A `vercel.json` file is included in this project with recommended function settings for optimal performance.
+2. **Import to Vercel**
+   - Go to [vercel.com](https://vercel.com)
+   - Click "New Project"
+   - Import your GitHub repository
+   - **IMPORTANT**: Keep all files in the root directory (no subdirectories)
 
-Check out the [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+3. **Configure Environment Variables**
+   In Vercel project settings, add:
+   ```
+   OPENAI_API_KEY = your_openai_api_key_here
+   ```
 
-## Learn More (Next.js)
+4. **Deploy**
+   Vercel will automatically build and deploy your application
 
-To learn more about the underlying Next.js framework, take a look at the following resources:
+## 📋 Features
 
--   [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
--   [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **AI-Powered Resume Evaluation**: Uses GPT-4o for comprehensive analysis
+- **Batch Processing**: Evaluate up to 40 resumes simultaneously
+- **Intelligent Scoring**: 5-category scoring system with detailed breakdowns
+- **Smart Ranking**: Quartile-based ranking for qualified candidates
+- **HR Copilot Chat**: Interactive AI assistant for deeper candidate insights
+- **Multiple Export Formats**: CSV and PDF reports with professional formatting
+- **File Support**: Accepts PDF and DOCX resume formats
+- **Rate Limiting**: Built-in protection (50 requests/minute)
+- **CORS Support**: Ready for cross-origin deployments
+
+## 🔧 Environment Variables
+
+Only one environment variable is required:
+
+```bash
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+
+# This key must have access to:
+# - gpt-4o (for resume evaluation and requirement extraction)
+# - gpt-4o-mini (for job type detection and chat)
+```
+
+## 📁 Project Structure
+
+```
+rush_hr_v2/
+├── src/
+│   ├── app/              # Next.js app router pages
+│   ├── components/       # React components
+│   ├── lib/             # Core business logic
+│   └── types/           # TypeScript type definitions
+├── public/              # Static assets
+├── .env.example         # Environment variable template
+├── package.json         # Project dependencies
+├── vercel.json         # Vercel configuration
+└── README.md           # This file
+```
+
+## 🛠️ Configuration
+
+### Vercel Configuration
+The `vercel.json` file includes optimized settings:
+- Extended timeout (300s) for batch processing
+- Increased memory (3GB) for handling multiple resumes
+- Proper function configuration for all API routes
+
+### API Limits
+- Maximum file size: 5MB per resume
+- Batch limit: 40 resumes per evaluation
+- Rate limit: 50 requests per minute
+- Concurrent parsing: 15 resumes
+- Concurrent evaluation: 5 resumes
+
+## 🔒 Security Features
+
+- No hardcoded secrets or API keys
+- File size validation (5MB limit)
+- Input sanitization for chat
+- CORS headers configured
+- Production-ready logging
+- Test endpoints removed
+
+## 📊 Scoring System
+
+The AI evaluates candidates across 5 categories:
+1. **Technical Skills Match** (40%)
+2. **Experience Relevance** (30%)
+3. **Education & Certifications** (15%)
+4. **Soft Skills & Culture Fit** (10%)
+5. **Resume Quality** (5%)
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+1. **404 Error on Vercel**
+   - Ensure all files are in the root directory
+   - Check that Vercel's root directory setting is "/"
+
+2. **Build Failures**
+   - Delete `node_modules` and `package-lock.json`
+   - Run `npm install` fresh
+   - Ensure Node.js 18+ is being used
+
+3. **API Key Issues**
+   - Verify your OpenAI API key is valid
+   - Ensure it has access to GPT-4o models
+   - Check for sufficient API credits
+
+### Getting Help
+
+For issues or questions:
+- Open an issue on [GitHub](https://github.com/sajor2000/rush_hr_v2/issues)
+- Check existing issues for solutions
+- Review the deployment logs in Vercel
+
+## 📝 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🏥 About Rush University System for Health
+
+This application is tailored for Rush University System for Health's HR methodology, incorporating their specific evaluation criteria and hiring practices.
