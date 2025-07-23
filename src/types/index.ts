@@ -6,6 +6,7 @@ export interface JobRequirements {
   mustHave?: string[];
   niceToHave?: string[];
   education?: any;
+  softSkills?: string[]; // New field for extracted soft skills
 }
 
 export interface CandidateProfile {
@@ -53,6 +54,8 @@ export interface EvaluationResult {
     educationCertifications: number;
     softSkillsCulture: number;
     resumeQuality: number;
+    baseScore?: number; // Base score (0-85) before bonus points
+    bonusPoints?: number; // Bonus points (0-15) for preferred qualifications and soft skills
   };
   mustHavesMet: boolean;
   tier: 'Top Tier' | 'Qualified' | 'Potential' | 'Not Qualified';
@@ -63,7 +66,11 @@ export interface EvaluationResult {
   hiringRecommendation?: string;
   quartileTier?: string; 
   quartileRank?: number; 
-  totalQualifiedForQuartile?: number; 
+  totalQualifiedForQuartile?: number;
+  // New fields for bonus tracking
+  preferredQualificationsMet?: string[]; // List of preferred qualifications the candidate has
+  softSkillsIdentified?: string[]; // List of soft skills demonstrated
+  bonusReason?: string; // Explanation of why bonus points were awarded
 }
 
 // --- New Types from Prompt ---

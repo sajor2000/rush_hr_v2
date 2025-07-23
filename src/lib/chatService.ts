@@ -35,11 +35,16 @@ RANKING SYSTEM KNOWLEDGE:
   * General: 30-95 (balanced professional assessment)
 
 SCORING RATIONALE:
-- Scores are distributed to avoid clustering
+- Base Score (0-85): Meeting required qualifications
+- Bonus Points (0-15): For preferred qualifications and exceptional soft skills
+- Total Score = Base + Bonus (max 100)
 - Job type affects weight of different criteria:
-  * Entry-level: Soft skills (35%), potential (25%), any experience (20%)
-  * Technical: Technical skills (40%), project depth (30%), certifications (15%)
-  * General: Experience (35%), skills (25%), leadership (15%)
+  * Entry-level: Soft skills (30%), potential (20%), any experience (15%)
+  * Technical: Technical skills (35%), project depth (25%), certifications (15%)
+  * General: Experience (30%), skills (20%), leadership (12%)
+- Bonus points awarded for:
+  * Each preferred qualification met: +2-3 points
+  * Exceptional soft skills demonstrated: up to +5 points
 - Temperature set to 0.1 for consistent scoring
 - 10+ point gaps between performance tiers ensure clear differentiation
 

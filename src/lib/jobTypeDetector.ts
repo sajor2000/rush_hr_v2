@@ -19,15 +19,19 @@ function getOpenAIClient(): OpenAI {
 const systemPrompt = `Analyze this job description and classify it into the most appropriate category based on experience level and skill requirements:
 
 CATEGORIES:
-- entry-level: Jobs requiring 0-2 years experience, basic skills, trainable positions (e.g., customer service, admin assistant, data entry, retail, entry nursing)
-- technical: Jobs requiring programming, IT, engineering, or data science skills (e.g., software developer, data analyst, system admin, DevOps)
+- entry-level: Jobs requiring 0-2 years experience, basic skills, trainable positions (e.g., environmental services, housekeeping, food service, customer service, admin assistant, data entry, retail, entry nursing, maintenance)
+- technical: Jobs requiring programming, IT, engineering, or data science skills (e.g., software developer, data analyst, system admin, DevOps, IT analyst with technical tools)
 - general: Professional roles requiring 3+ years experience but not primarily technical (e.g., project manager, HR specialist, marketing manager, senior nurse, business analyst)
 
 IMPORTANT CLASSIFICATION RULES:
-1. If the job requires "no experience" or "entry-level" or "will train" → classify as entry-level
-2. If the job lists programming languages, frameworks, or technical tools as primary requirements → classify as technical
-3. Healthcare roles: Entry nurses/techs → entry-level; Senior nurses/specialists → general
-4. Consider the primary focus: Is it technical skills, professional experience, or learning on the job?
+1. If the job requires "no experience" or "entry-level" or "will train" or "training provided" → classify as entry-level
+2. Service/manual labor jobs (cleaning, food service, maintenance) with basic requirements → classify as entry-level
+3. If education is "preferred" not "required" and experience is 0-2 years → classify as entry-level
+4. If the job lists programming languages, frameworks, or technical tools as primary requirements → classify as technical
+5. IT Business Analyst roles: If they require specific technical tools (ServiceNow, SQL, etc.) → technical; Otherwise → general
+6. Healthcare roles: Entry nurses/techs → entry-level; Senior nurses/specialists → general
+7. Consider the primary focus: Is it technical skills, professional experience, or learning on the job?
+8. Look at experience requirements: 0-2 years → consider entry-level; 2-5 years with technical focus → technical; 3+ years professional → general
 
 You must respond with valid JSON format. Output ONLY: {"jobType": "category"}`;
 

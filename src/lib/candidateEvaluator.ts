@@ -28,30 +28,65 @@ CRITICAL INSTRUCTIONS:
 - CREATE SCORE DISTRIBUTION: Use the full scoring range to differentiate candidates
 - Avoid clustering scores - spread them across the range for better quartile distribution
 
+SCORING STRUCTURE:
+- Base Score (0-85 points): Meeting required qualifications
+- Bonus Points (0-15 points): For preferred qualifications and exceptional soft skills
+  * Up to 10 points for preferred qualifications (niceToHave)
+  * Up to 5 points for demonstrated soft skills (leadership, teamwork, etc.)
+- Total Score = Base Score + Bonus Points (max 100)
+
 EVALUATION PROCESS:
 
-1. MUST-HAVE GATE: Check ALL must-have qualifications. Note missing items but continue scoring`;
+1. MUST-HAVE GATE: Check ALL must-have qualifications. Note missing items but continue scoring
+   - For technical requirements (e.g., ServiceNow SPM), look for exact matches or very similar tools
+   - For experience requirements, ensure minimum years are met
+   - For education, accept equivalent experience when stated (e.g., "or related experience")
+   
+2. PREFERRED QUALIFICATIONS CHECK: Award bonus points for each preferred qualification met
+   - Each preferred qualification met: +2-3 points
+   - Related but not exact match: +1 point
+   - Maximum 10 bonus points for preferred qualifications
+   
+3. SOFT SKILLS ASSESSMENT: Award bonus points for demonstrated soft skills
+   - Look for evidence of soft skills in work experience descriptions
+   - Leadership roles, team coordination, stakeholder management = high value
+   - Communication examples (presentations, documentation, training) = medium value
+   - Maximum 5 bonus points for exceptional soft skills`;
 
   // Job type specific prompts
   if (jobType === 'entry-level') {
     return basePrompt + `
 
-2. DETAILED SCORING FOR ENTRY-LEVEL POSITIONS (if must-haves met):
-   a) Soft Skills & Availability (35%): Reliability, communication, teamwork, schedule flexibility, customer service orientation
-   b) Basic Qualifications & Potential (25%): Meets minimum requirements, shows growth potential, trainability indicators
-   c) Experience Relevance (20%): ANY relevant experience including part-time, volunteer, internships, school projects
+4. DETAILED SCORING FOR ENTRY-LEVEL POSITIONS:
+   BASE SCORE (0-85):
+   a) Soft Skills & Availability (30%): Reliability, communication, teamwork, schedule flexibility, customer service orientation
+   b) Basic Qualifications & Potential (20%): Meets minimum requirements, shows growth potential, trainability indicators
+   c) Experience Relevance (15%): ANY relevant experience including part-time, volunteer, internships, school projects
    d) Education & Training (15%): Relevant education, certifications, training programs, continuous learning
    e) Resume Quality (5%): Basic clarity and organization (be lenient - entry-level may have simple resumes)
+   
+   BONUS POINTS (0-15):
+   - Preferred Qualifications (0-10): 
+     * High school diploma/GED when not required: +3 points
+     * Prior experience in similar role: +4 points
+     * Bilingual abilities: +3 points
+   - Exceptional Soft Skills (0-5): 
+     * Demonstrated reliability (long tenure, perfect attendance): +2 points
+     * Customer service excellence: +2 points
+     * Team leadership or training others: +1 point
 
-3. ENTRY-LEVEL SPECIFIC ANALYSIS:
+5. ENTRY-LEVEL SPECIFIC ANALYSIS:
    - Consider ALL experience types: volunteer work, internships, part-time jobs, school projects
    - Look for transferable skills from unrelated fields
    - Value attitude and potential over extensive experience
    - Check for basic computer skills and willingness to learn
    - Consider availability for required shifts/schedules
    - Don't penalize short work history or limited professional experience
+   - Physical capabilities mentioned = positive indicator
+   - Any customer service or team experience = valuable
+   - Consistent employment history (even different fields) = reliability indicator
 
-4. SCORING DISTRIBUTION FOR ENTRY-LEVEL (20-95 range):
+6. SCORING DISTRIBUTION FOR ENTRY-LEVEL (20-100 range with bonus):
    - Exceptional (85-95): Outstanding potential, exceeds all expectations
    - Strong (70-84): Very good fit, ready to excel with training
    - Good (55-69): Solid candidate, meets core requirements
@@ -75,7 +110,9 @@ OUTPUT JSON:
     "experienceRelevance": number,
     "educationCertifications": number,
     "softSkillsCulture": number,
-    "resumeQuality": number
+    "resumeQuality": number,
+    "baseScore": number,
+    "bonusPoints": number
   },
   "mustHavesMet": boolean,
   "tier": "tier name",
@@ -83,19 +120,27 @@ OUTPUT JSON:
   "gaps": ["specific gaps or growth areas"],
   "explanation": "Comprehensive 3-4 sentence summary with specific examples",
   "redFlags": ["concerns like gaps, job hopping, etc."],
-  "hiringRecommendation": "Strongly recommend/Recommend/Consider/Pass with reasoning"
+  "hiringRecommendation": "Strongly recommend/Recommend/Consider/Pass with reasoning",
+  "preferredQualificationsMet": ["list of nice-to-have qualifications this candidate has"],
+  "softSkillsIdentified": ["list of soft skills demonstrated in resume"],
+  "bonusReason": "Explanation of why bonus points were awarded"
 }`;
   } else if (jobType === 'technical') {
     return basePrompt + `
 
-2. DETAILED SCORING FOR TECHNICAL POSITIONS (if must-haves met):
-   a) Technical Skills Match (40%): Exact and semantic matching of technologies, frameworks, languages, tools
-   b) Experience Relevance (30%): Technical project depth, problem-solving examples, innovation, system design
+4. DETAILED SCORING FOR TECHNICAL POSITIONS:
+   BASE SCORE (0-85):
+   a) Technical Skills Match (35%): Exact and semantic matching of technologies, frameworks, languages, tools
+   b) Experience Relevance (25%): Technical project depth, problem-solving examples, innovation, system design
    c) Education & Certifications (15%): CS degree, relevant certifications (AWS, Azure, etc.), specialized training
-   d) Soft Skills & Collaboration (10%): Team collaboration, documentation, mentoring, communication of technical concepts
-   e) Portfolio & Code Quality (5%): GitHub contributions, open source, technical blog, code samples
+   d) Soft Skills & Collaboration (8%): Team collaboration, documentation, mentoring, communication of technical concepts
+   e) Portfolio & Code Quality (2%): GitHub contributions, open source, technical blog, code samples
+   
+   BONUS POINTS (0-15):
+   - Preferred Technologies (0-10): Award 2-3 points per preferred technology/framework mastered
+   - Leadership & Mentoring (0-5): Technical leadership, mentoring juniors, teaching, speaking at conferences
 
-3. TECHNICAL ROLE SPECIFIC ANALYSIS:
+5. TECHNICAL ROLE SPECIFIC ANALYSIS:
    - Deep dive into specific technologies and versions used
    - Evaluate complexity of projects and technical challenges solved
    - Look for continuous learning and staying current with tech
@@ -103,7 +148,7 @@ OUTPUT JSON:
    - Assess system design and architecture experience
    - Value hands-on coding experience and practical implementations
 
-4. SCORING DISTRIBUTION FOR TECHNICAL (40-100 range):
+6. SCORING DISTRIBUTION FOR TECHNICAL (40-100 range with bonus):
    - Expert (90-100): Exceeds all requirements, technical leader material
    - Senior (80-89): Strong match, can contribute immediately
    - Mid-level (70-79): Solid skills, meets most requirements
@@ -128,7 +173,9 @@ OUTPUT JSON:
     "experienceRelevance": number,
     "educationCertifications": number,
     "softSkillsCulture": number,
-    "resumeQuality": number
+    "resumeQuality": number,
+    "baseScore": number,
+    "bonusPoints": number
   },
   "mustHavesMet": boolean,
   "tier": "tier name",
@@ -136,20 +183,28 @@ OUTPUT JSON:
   "gaps": ["specific gaps or growth areas"],
   "explanation": "Comprehensive 3-4 sentence summary with specific examples",
   "redFlags": ["concerns like gaps, job hopping, etc."],
-  "hiringRecommendation": "Strongly recommend/Recommend/Consider/Pass with reasoning"
+  "hiringRecommendation": "Strongly recommend/Recommend/Consider/Pass with reasoning",
+  "preferredQualificationsMet": ["list of nice-to-have qualifications this candidate has"],
+  "softSkillsIdentified": ["list of soft skills demonstrated in resume"],
+  "bonusReason": "Explanation of why bonus points were awarded"
 }`;
   } else {
     // General professional roles
     return basePrompt + `
 
-2. DETAILED SCORING FOR PROFESSIONAL POSITIONS (if must-haves met):
-   a) Experience Relevance (35%): Industry alignment, role progression, leadership, measurable achievements
-   b) Skills Match (25%): Core competencies, domain expertise, specialized knowledge
+4. DETAILED SCORING FOR PROFESSIONAL POSITIONS:
+   BASE SCORE (0-85):
+   a) Experience Relevance (30%): Industry alignment, role progression, leadership, measurable achievements
+   b) Skills Match (20%): Core competencies, domain expertise, specialized knowledge
    c) Education & Professional Development (20%): Relevant degree, professional certifications, executive education
-   d) Leadership & Soft Skills (15%): Team management, strategic thinking, communication, stakeholder management
-   e) Resume Quality (5%): Professional presentation, quantified achievements, clear career narrative
+   d) Leadership & Soft Skills (12%): Team management, strategic thinking, communication, stakeholder management
+   e) Resume Quality (3%): Professional presentation, quantified achievements, clear career narrative
+   
+   BONUS POINTS (0-15):
+   - Preferred Qualifications (0-10): Industry certifications, advanced degrees, specific expertise
+   - Exceptional Leadership (0-5): C-level experience, board positions, published work, speaking engagements
 
-3. PROFESSIONAL ROLE SPECIFIC ANALYSIS:
+5. PROFESSIONAL ROLE SPECIFIC ANALYSIS:
    - Evaluate management and leadership experience
    - Look for strategic thinking and business impact
    - Assess industry knowledge and domain expertise
@@ -157,7 +212,7 @@ OUTPUT JSON:
    - Review client/stakeholder relationship management
    - Value cross-functional collaboration and influence
 
-4. SCORING DISTRIBUTION FOR GENERAL/PROFESSIONAL (30-95 range):
+6. SCORING DISTRIBUTION FOR GENERAL/PROFESSIONAL (30-100 range with bonus):
    - Executive (85-95): Exceptional leader, exceeds all requirements
    - Senior (75-84): Strong professional, ready for challenges
    - Experienced (65-74): Solid contributor, meets requirements well
@@ -183,7 +238,9 @@ OUTPUT JSON:
     "experienceRelevance": number,
     "educationCertifications": number,
     "softSkillsCulture": number,
-    "resumeQuality": number
+    "resumeQuality": number,
+    "baseScore": number,
+    "bonusPoints": number
   },
   "mustHavesMet": boolean,
   "tier": "tier name",
@@ -191,7 +248,10 @@ OUTPUT JSON:
   "gaps": ["specific gaps or growth areas"],
   "explanation": "Comprehensive 3-4 sentence summary with specific examples",
   "redFlags": ["concerns like gaps, job hopping, etc."],
-  "hiringRecommendation": "Strongly recommend/Recommend/Consider/Pass with reasoning"
+  "hiringRecommendation": "Strongly recommend/Recommend/Consider/Pass with reasoning",
+  "preferredQualificationsMet": ["list of nice-to-have qualifications this candidate has"],
+  "softSkillsIdentified": ["list of soft skills demonstrated in resume"],
+  "bonusReason": "Explanation of why bonus points were awarded"
 }`;
   }
 };
@@ -231,7 +291,7 @@ export async function evaluateCandidate(
         { role: 'system', content: systemPrompt },
         {
           role: 'user',
-          content: `Please evaluate the following resume:\n\n**Resume File Name:** ${fileName}\n\n**Resume Text:**\n${resumeText}\n\n**Job Requirements:**\n${JSON.stringify(jobRequirements, null, 2)}`,
+          content: `Please evaluate the following resume:\n\n**Resume File Name:** ${fileName}\n\n**Resume Text:**\n${resumeText}\n\n**Job Requirements:**\n${JSON.stringify(jobRequirements, null, 2)}\n\n**IMPORTANT BONUS POINT INSTRUCTIONS:**\n- Check if candidate meets any preferred qualifications (niceToHave)\n- Check if candidate demonstrates exceptional soft skills (${jobRequirements.softSkills?.join(', ') || 'leadership, teamwork, communication'})\n- Award bonus points accordingly (up to 15 total)\n- List which preferred qualifications they meet\n- List which soft skills they demonstrate`,
         },
       ],
       response_format: { type: 'json_object' },
