@@ -145,12 +145,16 @@ const columns = [
       let displayStyle = 'bg-stone-100 text-stone-800';
       
       if (quartileTier) {
-        // Quartile-based styling
+        // Quartile-based styling with support for both old and new labels
         const quartileStyles: Record<string, string> = {
           'Q1 - Top 25%': 'bg-green-600 text-white font-semibold',
           'Q2 - Top 50%': 'bg-green-100 text-green-800',
           'Q3 - Top 75%': 'bg-yellow-100 text-yellow-800',
           'Q4 - Bottom 25%': 'bg-orange-100 text-orange-800',
+          'Q1 - Best Candidates (Top 25%)': 'bg-green-600 text-white font-semibold',
+          'Q2 - Strong Candidates (26-50%)': 'bg-green-100 text-green-800',
+          'Q3 - Fair Candidates (51-75%)': 'bg-yellow-100 text-yellow-800',
+          'Q4 - Weak Fit (Bottom 25%)': 'bg-orange-100 text-orange-800',
         };
         displayStyle = quartileStyles[quartileTier] || displayStyle;
       } else if (originalTier === 'Not Qualified') {
@@ -163,9 +167,15 @@ const columns = [
             {originalTier}
           </span>
           {quartileTier && (
-            <span className="text-xs text-gray-600 font-medium">
-              {quartileTier}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-gray-600 font-medium">
+                {quartileTier.includes('Q1') && '⭐ '}
+                {quartileTier.includes('Q2') && '✓ '}
+                {quartileTier.includes('Q3') && '➖ '}
+                {quartileTier.includes('Q4') && '⚠️ '}
+                {quartileTier}
+              </span>
+            </div>
           )}
         </div>
       );

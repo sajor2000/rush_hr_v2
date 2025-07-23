@@ -56,10 +56,10 @@ export default function Home() {
     const rankedResults = sortedCandidates.map((candidate, index) => {
       const rank = index + 1;
       let quartileTier = '';
-      if (rank <= q1End) quartileTier = 'Q1 - Top 25%';
-      else if (rank <= q2End) quartileTier = 'Q2 - Top 50%';
-      else if (rank <= q3End) quartileTier = 'Q3 - Top 75%';
-      else quartileTier = 'Q4 - Bottom 25%';
+      if (rank <= q1End) quartileTier = 'Q1 - Best Candidates (Top 25%)';
+      else if (rank <= q2End) quartileTier = 'Q2 - Strong Candidates (26-50%)';
+      else if (rank <= q3End) quartileTier = 'Q3 - Fair Candidates (51-75%)';
+      else quartileTier = 'Q4 - Weak Fit (Bottom 25%)';
       
       return {
         ...candidate,
@@ -297,23 +297,43 @@ export default function Home() {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     doc.text(`Job Title: ${jobInfo.jobRequirements.title}`, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 15;
+    yPos += 10;
+    
+    // Add Quartile Explanation
+    doc.setFontSize(10);
+    doc.setTextColor(60, 60, 60);
+    doc.text('Candidates are ranked into quartiles based on their match to the job description:', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 6;
+    doc.text('Q1 = Best fit (Top 25%) | Q2 = Strong fit (26-50%) | Q3 = Fair fit (51-75%) | Q4 = Weak fit (Bottom 25%)', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 10;
+    doc.setTextColor(0, 0, 0);
 
     // Sort results by score (highest first) and group by quartile
     const sortedResults = [...evaluationResults].sort((a, b) => b.scores.overall - a.scores.overall);
     
     // Group by quartile
     const quartileGroups: Record<string, typeof sortedResults> = {
-      'Q1 - Top 25%': [],
-      'Q2 - Top 50%': [],
-      'Q3 - Top 75%': [],
-      'Q4 - Bottom 25%': [],
+      'Q1 - Best Candidates (Top 25%)': [],
+      'Q2 - Strong Candidates (26-50%)': [],
+      'Q3 - Fair Candidates (51-75%)': [],
+      'Q4 - Weak Fit (Bottom 25%)': [],
       'Not Qualified': []
     };
     
     sortedResults.forEach(result => {
       const group = result.quartileTier || 'Not Qualified';
-      if (quartileGroups[group]) {
+      // Map old quartile names to new ones for backward compatibility
+      const groupMapping: Record<string, string> = {
+        'Q1 - Top 25%': 'Q1 - Best Candidates (Top 25%)',
+        'Q2 - Top 50%': 'Q2 - Strong Candidates (26-50%)',
+        'Q3 - Top 75%': 'Q3 - Fair Candidates (51-75%)',
+        'Q4 - Bottom 25%': 'Q4 - Weak Fit (Bottom 25%)'
+      };
+      const mappedGroup = groupMapping[group] || group;
+      
+      if (quartileGroups[mappedGroup]) {
+        quartileGroups[mappedGroup].push(result);
+      } else if (quartileGroups[group]) {
         quartileGroups[group].push(result);
       } else {
         quartileGroups['Not Qualified'].push(result);
@@ -534,6 +554,44 @@ export default function Home() {
               <div className="mt-6">
                 {evaluationResults.length > 0 && (
                   <div className="space-y-8">
+                    {/* Quartile Explanation Box */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-blue-900 mb-2">Understanding Candidate Rankings</h3>
+                      <p className="text-sm text-blue-800 mb-3">
+                        Candidates are ranked into quartiles based on their match to the job description. 
+                        Q1 represents the best-fit candidates who most closely match your requirements.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xl">⭐</span>
+                          <div>
+                            <p className="font-semibold text-green-700">Q1 - Best Candidates</p>
+                            <p className="text-xs text-gray-600">Top 25% match</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xl">✓</span>
+                          <div>
+                            <p className="font-semibold text-green-600">Q2 - Strong Candidates</p>
+                            <p className="text-xs text-gray-600">26-50% match</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xl">➖</span>
+                          <div>
+                            <p className="font-semibold text-yellow-600">Q3 - Fair Candidates</p>
+                            <p className="text-xs text-gray-600">51-75% match</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xl">⚠️</span>
+                          <div>
+                            <p className="font-semibold text-orange-600">Q4 - Weak Fit</p>
+                            <p className="text-xs text-gray-600">Bottom 25% match</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                     <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4">
                       <button 
                         onClick={handleExportCSV} 
