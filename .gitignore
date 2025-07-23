@@ -1,50 +1,55 @@
-# macOS
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
 .DS_Store
-.AppleDouble
-.LSOverride
+*.pem
 
-# Node
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-# package-lock.json # Keep if using npm
-# yarn.lock # Keep if using yarn
-# pnpm-lock.yaml # Keep if using pnpm
-
-# Build output
-dist/
-build/
-.next/
-out/
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-!.env.example
-
-# Logs
-logs
-*.log
+# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Coverage
-coverage/
-.nyc_output/
+# local env files
+.env*.local
 
-# IDEs and editors
-.vscode/
-.idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# vercel
+.vercel
 
-# Temporary files
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# test data
+test_resumes/
+medical-ontology-mcp/
+rush_policy_chat/
+
+# temporary files
+*.backup
 *.tmp
-*~
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific
+.DS_Store
+Thumbs.db
