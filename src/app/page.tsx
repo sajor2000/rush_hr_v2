@@ -103,6 +103,15 @@ export default function Home() {
     formData.append('jobDescriptionFile', file);
 
     try {
+      // Log the file being uploaded
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Uploading job description:', {
+          name: file.name,
+          size: file.size,
+          type: file.type
+        });
+      }
+
       const response = await fetch('/api/parse-job-description', {
         method: 'POST',
         body: formData,
@@ -115,6 +124,11 @@ export default function Home() {
 
       const { extractedText } = await response.json();
       setJobDescription(extractedText);
+      
+      // Log success
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Job description parsed successfully, length:', extractedText.length);
+      }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
@@ -206,6 +220,10 @@ export default function Home() {
               }
               if (data.message) {
                 setStatusMessage(data.message);
+              }
+              // Log progress for debugging
+              if (process.env.NODE_ENV === 'development') {
+                console.log('Progress update:', data);
               }
               break;
             case 'error':

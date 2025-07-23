@@ -16,14 +16,30 @@ import { getCorsHeaders } from '@/lib/corsHeaders';
 async function parsePdf(buffer: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
     let content = "";
+    let itemCount = 0;
+    const startTime = Date.now();
+    
     new PdfReader(null).parseBuffer(buffer, (err, item) => {
       if (err) {
-        logger.error('PDF parsing failed', err, { fileType: 'pdf' });
+        logger.error('PDF parsing failed', err, { 
+          fileType: 'pdf',
+          bufferSize: buffer.length,
+          itemsProcessed: itemCount
+        });
         reject(new Error(`Failed to parse PDF: ${err.message || 'Unknown PDF parsing error'}`));
       } else if (!item) {
         // End of buffer, PDF parsing is finished.
+        const duration = Date.now() - startTime;
+        if (process.env.NODE_ENV === 'development') {
+          logger.debug('PDF parsing completed', { 
+            itemCount, 
+            contentLength: content.length,
+            duration 
+          });
+        }
         resolve(content.trim());
       } else if (item.text) {
+        itemCount++;
         content += item.text + " "; // Add a space to separate text items
       }
     });
@@ -34,8 +50,9 @@ async function parsePdf(buffer: Buffer): Promise<string> {
 // Max 100 entries, 60 minutes TTL
 const evaluationCache = new LRUCache<string, Record<string, unknown>>(100, 60);
 
-// Limit concurrency for file parsing - increased for 40 resumes
-const parsingLimit = pLimit(15);
+// Limit concurrency for file parsing - optimized for stability
+const parsingLimit = pLimit(3); // Reduced to prevent memory issues
+const BATCH_SIZE = 5; // Process resumes in smaller batches
 
 // Helper to encode SSE messages
 const encoder = new TextEncoder();
@@ -49,18 +66,28 @@ function createSseStream(data: unknown, eventName?: string) {
 
 async function parseResume(file: File): Promise<{ fileName: string; text: string; buffer: Buffer; error?: string }> {
   const fileBuffer = Buffer.from(await file.arrayBuffer());
+  
+  // Add timeout protection for parsing (30 seconds per file)
+  const parseWithTimeout = async (): Promise<string> => {
+    return Promise.race([
+      (async () => {
+        if (file.type === 'application/pdf') {
+          return await parsePdf(fileBuffer);
+        } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          const { value } = await mammoth.extractRawText({ buffer: fileBuffer });
+          return value;
+        } else {
+          throw new Error('Unsupported file type');
+        }
+      })(),
+      new Promise<string>((_, reject) => 
+        setTimeout(() => reject(new Error('File parsing timeout (30s)')), 30000)
+      )
+    ]);
+  };
+
   try {
-    let text = '';
-
-    if (file.type === 'application/pdf') {
-      text = await parsePdf(fileBuffer);
-    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      const { value } = await mammoth.extractRawText({ buffer: fileBuffer });
-      text = value;
-    } else {
-      return { fileName: file.name, text: '', buffer: fileBuffer, error: 'Unsupported file type' };
-    }
-
+    const text = await parseWithTimeout();
     return { fileName: file.name, text, buffer: fileBuffer };
   } catch (error) {
     logger.error('Resume parsing failed', error, { fileName: file.name });
@@ -109,20 +136,35 @@ export async function POST(req: NextRequest) {
         // Send initial job info to the client
         controller.enqueue(createSseStream({ jobType, jobRequirements }, 'job_info'));
 
-        // Step 2: Parse all resumes
-        controller.enqueue(createSseStream({ message: `Parsing ${files.length} resume(s)...` }, 'status_update'));
-        const parsedResumes = await Promise.all(
-          files.map(file => parsingLimit(() => parseResume(file)))
-        );
-
-        // Step 3: Evaluate each resume and stream results
-        controller.enqueue(createSseStream({ message: 'Scoring candidates...', total: parsedResumes.length }, 'status_update'));
-        
+        // Step 2: Process resumes in batches to avoid memory issues
         let completedCount = 0;
         let errorCount = 0;
+        const totalFiles = files.length;
         
-        // Process resumes sequentially to avoid overwhelming the API and ensure proper progress tracking
-        for (const resume of parsedResumes) {
+        controller.enqueue(createSseStream({ 
+          message: `Processing ${totalFiles} resume(s) in batches of ${BATCH_SIZE}...`,
+          total: totalFiles 
+        }, 'status_update'));
+
+        // Process files in batches
+        for (let i = 0; i < files.length; i += BATCH_SIZE) {
+          const batch = files.slice(i, Math.min(i + BATCH_SIZE, files.length));
+          const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+          const totalBatches = Math.ceil(files.length / BATCH_SIZE);
+          
+          controller.enqueue(createSseStream({ 
+            message: `Processing batch ${batchNumber} of ${totalBatches} (${batch.length} files)...`,
+            progress: completedCount,
+            total: totalFiles
+          }, 'progress_update'));
+
+          // Parse batch of resumes with limited concurrency
+          const parsedBatch = await Promise.all(
+            batch.map(file => parsingLimit(() => parseResume(file)))
+          );
+
+          // Process each resume in the batch
+          for (const resume of parsedBatch) {
           try {
             const hash = createHash('sha256').update(resume.buffer).digest('hex');
 
@@ -177,11 +219,11 @@ export async function POST(req: NextRequest) {
             completedCount++;
             
             // Update progress after each resume
-            const percentage = Math.round((completedCount / parsedResumes.length) * 100);
+            const percentage = Math.round((completedCount / totalFiles) * 100);
             controller.enqueue(createSseStream({ 
-              message: `Evaluated ${completedCount} of ${parsedResumes.length} resumes (${percentage}%)...`,
+              message: `Evaluated ${completedCount} of ${totalFiles} resumes (${percentage}%)...`,
               progress: completedCount,
-              total: parsedResumes.length,
+              total: totalFiles,
               percentage: percentage
             }, 'progress_update'));
             
@@ -197,26 +239,32 @@ export async function POST(req: NextRequest) {
             }, 'evaluation_error'));
             
             // Update progress even on error
-            const percentage = Math.round((completedCount / parsedResumes.length) * 100);
+            const percentage = Math.round((completedCount / totalFiles) * 100);
             controller.enqueue(createSseStream({ 
-              message: `Evaluated ${completedCount} of ${parsedResumes.length} resumes (${percentage}%)...`,
+              message: `Evaluated ${completedCount} of ${totalFiles} resumes (${percentage}%)...`,
               progress: completedCount,
-              total: parsedResumes.length,
+              total: totalFiles,
               percentage: percentage
             }, 'progress_update'));
           }
+          } // End of batch processing
+          
+          // Optional: Add a small delay between batches to prevent overload
+          if (i + BATCH_SIZE < files.length) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
         }
         
-        // Count successes and failures
+        // Final summary
         const successCount = completedCount - errorCount;
         const failureCount = errorCount;
         
         // Send batch summary
         if (failureCount > 0) {
           controller.enqueue(createSseStream({ 
-            message: `Batch complete: ${successCount} succeeded, ${failureCount} failed`,
+            message: `Processing complete: ${successCount} succeeded, ${failureCount} failed`,
             summary: {
-              total: parsedResumes.length,
+              total: totalFiles,
               succeeded: successCount,
               failed: failureCount
             }
@@ -227,7 +275,7 @@ export async function POST(req: NextRequest) {
         controller.enqueue(createSseStream({ message: 'done' }, 'done'));
         
         logger.apiResponse('POST', '/api/evaluate', 200, Date.now() - startTime, {
-          totalResumes: parsedResumes.length,
+          totalResumes: totalFiles,
           succeeded: completedCount - errorCount,
           failed: errorCount
         });
