@@ -22,7 +22,7 @@ entry-level: Minimal experience, manual labor, customer service, or admin roles
 technical: IT, engineering, programming, data science requiring technical skills
 general: All other professional roles (marketing, management, etc.)
 
-Output ONLY: {"jobType": "category"}`;
+You must respond with valid JSON format. Output ONLY: {"jobType": "category"}`;
 
 /**
  * Detects the job type from a job description using the OpenAI API.
