@@ -1,7 +1,11 @@
 // Resume preprocessing to optimize token usage
 export function preprocessResume(resumeText: string): string {
-  // Remove excessive horizontal whitespace but preserve line breaks
-  let processed = resumeText.replace(/[ \t]+/g, ' ').trim();
+  // Preserve original formatting better
+  // Only collapse multiple spaces, keep single line breaks
+  let processed = resumeText
+    .replace(/[ \t]{2,}/g, ' ')  // Replace 2+ spaces/tabs with single space
+    .replace(/\n{3,}/g, '\n\n')  // Replace 3+ newlines with double newline
+    .trim();
   
   // Remove common boilerplate phrases
   const boilerplatePatterns = [
@@ -46,14 +50,14 @@ interface ResumeSections {
 function extractSections(text: string): ResumeSections {
   const sections: ResumeSections = {};
   
-  // Common section headers - more flexible matching
+  // Common section headers - very flexible matching
   const sectionPatterns: { [key: string]: RegExp } = {
-    contact: /^(contact|personal information|info)/im,
-    summary: /^(summary|objective|profile|professional summary|career objective)/im,
-    experience: /^(experience|work experience|professional experience|employment|work history|career history|EXPERIENCE)/im,
-    education: /^(education|academic|qualifications|degrees|EDUCATION)/im,
-    skills: /^(skills|technical skills|core competencies|expertise|technologies|SKILLS)/im,
-    certifications: /^(certifications?|licenses?|credentials?)/im,
+    contact: /^\s*(contact|personal\s+information|info|name|phone|email|address)\s*[:.-]?\s*$/im,
+    summary: /^\s*(summary|objective|profile|professional\s+summary|career\s+objective|about\s+me|overview)\s*[:.-]?\s*$/im,
+    experience: /^\s*(experience|work\s+experience|professional\s+experience|employment|work\s+history|career\s+history|employment\s+history|positions\s+held|work\s+background)\s*[:.-]?\s*$/im,
+    education: /^\s*(education|academic|qualifications|degrees|schooling|training|academic\s+background)\s*[:.-]?\s*$/im,
+    skills: /^\s*(skills|technical\s+skills|core\s+competencies|expertise|technologies|proficiencies|competencies|abilities)\s*[:.-]?\s*$/im,
+    certifications: /^\s*(certifications?|licenses?|credentials?|certificates?|professional\s+development)\s*[:.-]?\s*$/im,
   };
   
   // Split text into lines for processing
@@ -74,15 +78,26 @@ function extractSections(text: string): ResumeSections {
     
     // Check if this line is a section header
     let foundSection = false;
-    for (const [section, pattern] of Object.entries(sectionPatterns)) {
-      if (pattern.test(trimmedLine)) {
-        currentSection = section;
-        if (!sectionContent[section]) {
-          sectionContent[section] = [];
+    
+    // Also check for all-caps versions and with/without colons
+    const lineVariations = [
+      trimmedLine,
+      trimmedLine.toUpperCase(),
+      trimmedLine.replace(/[:.-]\s*$/, ''),  // Remove trailing punctuation
+    ];
+    
+    for (const lineVar of lineVariations) {
+      for (const [section, pattern] of Object.entries(sectionPatterns)) {
+        if (pattern.test(lineVar)) {
+          currentSection = section;
+          if (!sectionContent[section]) {
+            sectionContent[section] = [];
+          }
+          foundSection = true;
+          break;
         }
-        foundSection = true;
-        break;
       }
+      if (foundSection) break;
     }
     
     // Add content to current section if not a header
@@ -109,8 +124,14 @@ function buildStructuredResume(sections: ResumeSections): string {
   
   // Debug what sections were found
   if (process.env.NODE_ENV === 'development') {
-    console.log('Sections found:', Object.keys(sections).filter(key => sections[key as keyof ResumeSections]));
+    const foundSections = Object.keys(sections).filter(key => sections[key as keyof ResumeSections]);
+    console.log('Sections found:', foundSections);
     console.log('Section lengths:', Object.entries(sections).map(([key, val]) => `${key}: ${val?.length || 0} chars`));
+    
+    // Log if very few sections were detected
+    if (foundSections.length <= 2) {
+      console.warn('Warning: Only', foundSections.length, 'sections detected. Section detection may have failed.');
+    }
   }
   
   if (sections.contact) {
@@ -141,13 +162,27 @@ function buildStructuredResume(sections: ResumeSections): string {
     parts.push(`ADDITIONAL: ${sections.other}`);
   }
   
-  // If very little was extracted, return original text with warning
+  // If very little was extracted, return original text
   const extractedLength = parts.join('').length;
-  if (extractedLength < 200 && process.env.NODE_ENV === 'development') {
-    console.warn('Very little content extracted from resume preprocessing, might affect evaluation');
+  const structuredResult = parts.join('\n\n');
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Extraction summary:', {
+      originalLength: text.length,
+      extractedLength,
+      extractionRatio: (extractedLength / text.length * 100).toFixed(1) + '%'
+    });
   }
   
-  return parts.join('\n\n');
+  // If extraction failed (less than 30% of original), return original
+  if (extractedLength < text.length * 0.3) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Preprocessing extracted too little content, returning original text');
+    }
+    return text;  // Return original instead of poorly extracted version
+  }
+  
+  return structuredResult;
 }
 
 // Estimate token count (rough approximation)

@@ -289,22 +289,35 @@ export async function POST(req: NextRequest) {
               continue;
             }
             
-            // Preprocess resume to optimize tokens
-            const processedText = preprocessResume(resume.text);
-            const tokenEstimate = estimateTokens(processedText);
+            // Check if preprocessing should be skipped
+            const skipPreprocessing = process.env.SKIP_RESUME_PREPROCESSING === 'true';
+            const originalTokens = estimateTokens(resume.text);
+            const TOKEN_THRESHOLD = 8000; // Only preprocess if exceeds this
             
-            // If preprocessing severely reduced content, use original
-            const useOriginal = processedText.length < resume.text.length * 0.3;
-            const textToEvaluate = useOriginal ? resume.text : processedText;
+            let textToEvaluate = resume.text;
+            let wasPreprocessed = false;
+            
+            // Only preprocess if not skipped and tokens exceed threshold
+            if (!skipPreprocessing && originalTokens > TOKEN_THRESHOLD) {
+              const processedText = preprocessResume(resume.text);
+              const processedTokens = estimateTokens(processedText);
+              
+              // Use processed text only if it retains enough content
+              if (processedText.length >= resume.text.length * 0.5) {
+                textToEvaluate = processedText;
+                wasPreprocessed = true;
+              }
+            }
             
             if (process.env.NODE_ENV === 'development') {
-              logger.debug(`Resume token optimization`, {
+              logger.debug(`Resume preprocessing decision`, {
                 fileName: resume.fileName,
-                tokensAfter: tokenEstimate,
-                tokensBefore: estimateTokens(resume.text),
+                skipPreprocessing,
+                originalTokens,
+                exceedsThreshold: originalTokens > TOKEN_THRESHOLD,
+                wasPreprocessed,
                 originalLength: resume.text.length,
-                processedLength: processedText.length,
-                usingOriginal: useOriginal
+                finalLength: textToEvaluate.length
               });
             }
             
