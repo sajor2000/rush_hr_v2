@@ -184,7 +184,12 @@ export default function ResultsDashboard({ results: initialResults, jobRequireme
       // Sort by preferredQualifications score, descending.
       // Assuming preferredQualifications is available, e.g., result.scores.preferredQualifications
       // If not, this sort needs to be adjusted or the data structure updated.
-      qualifiedCandidates.sort((a, b) => b.scores.preferredQualifications - a.scores.preferredQualifications);
+      qualifiedCandidates.sort((a, b) => {
+        // Use technicalSkills as primary sort, fall back to preferredQualifications or overall
+        const scoreA = a.scores.technicalSkills ?? a.scores.preferredQualifications ?? a.scores.overall;
+        const scoreB = b.scores.technicalSkills ?? b.scores.preferredQualifications ?? b.scores.overall;
+        return scoreB - scoreA;
+      });
 
       const totalQualified = qualifiedCandidates.length;
       const quartileSize = Math.ceil(totalQualified / 4);

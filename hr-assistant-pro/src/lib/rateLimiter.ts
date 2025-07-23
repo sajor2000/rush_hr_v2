@@ -63,7 +63,7 @@ class RateLimiter {
   }
 }
 
-export const chatRateLimiter = new RateLimiter(20, 60000); // 20 requests per minute
+export const chatRateLimiter = new RateLimiter(50, 60000); // 50 requests per minute for 40 resume batches
 
 // Clean up every 5 minutes - only in Node.js environment
 if (typeof window === 'undefined') {

@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAzureOpenAIClient, isUsingAzure, AZURE_CONFIG } from '@/lib/azureOpenAIClient';
 import OpenAI from 'openai';
 
 interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
   timestamp: string;
-  azure: {
-    enabled: boolean;
-    endpoint?: string;
-    deployment?: string;
+  openai: {
+    configured: boolean;
+    model: string;
   };
   services: {
     name: string;
@@ -36,7 +34,7 @@ async function testService(
   
   try {
     const response = await client.chat.completions.create({
-      model: isUsingAzure() ? AZURE_CONFIG.deploymentName : 'gpt-4o',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: 'You are a test assistant. Reply with "OK".' },
         { role: 'user', content: testPrompt }
@@ -75,10 +73,9 @@ export async function GET(req: NextRequest) {
     const result: HealthCheckResult = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      azure: {
-        enabled: isUsingAzure(),
-        endpoint: isUsingAzure() ? AZURE_CONFIG.endpoint : undefined,
-        deployment: isUsingAzure() ? AZURE_CONFIG.deploymentName : undefined
+      openai: {
+        configured: !!process.env.OPENAI_API_KEY,
+        model: 'gpt-4o'
       },
       services: [],
       systemInfo: {
@@ -94,7 +91,7 @@ export async function GET(req: NextRequest) {
 
     // Test Azure/OpenAI connectivity
     try {
-      const client = isUsingAzure() ? getAzureOpenAIClient() as any : new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
       
       // Test different services
       const services = [

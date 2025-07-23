@@ -32,6 +32,39 @@ const EvaluationResultCard: React.FC<Props> = ({ result }) => {
         <p className="text-sm text-gray-700">{result.explanation}</p>
       </div>
 
+      {/* Detailed Scores */}
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-xs">
+        <div className="text-center p-2 bg-gray-50 rounded">
+          <p className="font-semibold text-gray-700">Technical</p>
+          <p className="text-lg font-bold">{result.scores.technicalSkills?.toFixed(0) || result.scores.preferredQualifications?.toFixed(0) || 'N/A'}</p>
+        </div>
+        <div className="text-center p-2 bg-gray-50 rounded">
+          <p className="font-semibold text-gray-700">Experience</p>
+          <p className="text-lg font-bold">{result.scores.experienceRelevance?.toFixed(0) || 'N/A'}</p>
+        </div>
+        <div className="text-center p-2 bg-gray-50 rounded">
+          <p className="font-semibold text-gray-700">Education</p>
+          <p className="text-lg font-bold">{result.scores.educationCertifications?.toFixed(0) || 'N/A'}</p>
+        </div>
+        <div className="text-center p-2 bg-gray-50 rounded">
+          <p className="font-semibold text-gray-700">Soft Skills</p>
+          <p className="text-lg font-bold">{result.scores.softSkillsCulture?.toFixed(0) || 'N/A'}</p>
+        </div>
+        <div className="text-center p-2 bg-gray-50 rounded">
+          <p className="font-semibold text-gray-700">Quality</p>
+          <p className="text-lg font-bold">{result.scores.resumeQuality?.toFixed(0) || result.scores.professionalism?.toFixed(0) || 'N/A'}</p>
+        </div>
+      </div>
+
+      {/* Hiring Recommendation */}
+      {result.hiringRecommendation && (
+        <div className="mt-3 p-2 bg-indigo-50 rounded">
+          <p className="text-sm font-semibold text-indigo-800">
+            Recommendation: {result.hiringRecommendation}
+          </p>
+        </div>
+      )}
+
       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <h4 className="font-semibold text-green-700">Strengths</h4>
@@ -46,6 +79,16 @@ const EvaluationResultCard: React.FC<Props> = ({ result }) => {
           </ul>
         </div>
       </div>
+
+      {/* Red Flags if any */}
+      {result.redFlags && result.redFlags.length > 0 && (
+        <div className="mt-3 p-2 bg-red-50 rounded">
+          <h4 className="font-semibold text-red-700 text-sm">Concerns:</h4>
+          <ul className="list-disc list-inside text-sm text-red-600 mt-1">
+            {result.redFlags.map((flag, i) => <li key={i}>{flag}</li>)}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

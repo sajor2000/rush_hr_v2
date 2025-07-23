@@ -46,14 +46,21 @@ export interface EvaluationResult {
   resumeText?: string; // Raw resume text for chat analysis
   scores: {
     overall: number;
-    preferredQualifications: number; // Added for quartile sorting
-    professionalism: number;
+    preferredQualifications?: number; // Legacy field for backward compatibility
+    professionalism?: number; // Legacy field for backward compatibility
+    technicalSkills: number;
+    experienceRelevance: number;
+    educationCertifications: number;
+    softSkillsCulture: number;
+    resumeQuality: number;
   };
   mustHavesMet: boolean;
   tier: 'Top Tier' | 'Qualified' | 'Potential' | 'Not Qualified';
   strengths: string[];
   gaps: string[];
   explanation: string;
+  redFlags?: string[];
+  hiringRecommendation?: string;
   quartileTier?: string; 
   quartileRank?: number; 
   totalQualifiedForQuartile?: number; 

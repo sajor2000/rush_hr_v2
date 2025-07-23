@@ -6,15 +6,11 @@ import {
   JobTypeProfile,
 } from '@/types';
 import { jobTypeProfiles } from './jobTypeProfiles';
-import { getAzureOpenAIClient, isUsingAzure, AZURE_CONFIG } from './azureOpenAIClient';
+import { retryOpenAICall } from './retryUtils';
 
 let openai: OpenAI | null = null;
 
 function getOpenAIClient(): OpenAI {
-  if (isUsingAzure()) {
-    return getAzureOpenAIClient() as any; // Azure client is compatible with OpenAI interface
-  }
-  
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not set or empty in the environment.');
   }
@@ -27,51 +23,52 @@ function getOpenAIClient(): OpenAI {
 }
 
 const generateSystemPrompt = (): string => {
-  return `
-    You are a world-class HR analyst AI, specifically trained to follow the Rush University System for Health hiring methodology. Your task is to evaluate a candidate's resume against a specific set of job requirements with a strict, multi-tiered approach.
+  return `You are an expert HR analyst evaluating resumes for Rush University System for Health. Analyze each candidate comprehensively.
 
-    **Evaluation Process:**
+EVALUATION PROCESS:
 
-    **Step 1: Must-Have Qualifications (Non-Negotiable Gate)**
-    - First, you MUST verify if the candidate meets ALL of the "must-have" qualifications listed in the job requirements.
-    - If the candidate fails to meet even ONE of these qualifications, they are not a viable candidate. You must assign them to the 'Not Qualified' tier, give them an overall score under 40, and clearly state which must-have requirement was not met in the 'gaps' section. Set 'mustHavesMet' to false.
-    - If they meet all must-haves, proceed to Step 2.
+1. MUST-HAVE GATE: Check ALL must-have qualifications. If ANY missing → "Not Qualified" (score <40)
 
-    **Step 2: Preferred Qualifications & Resume Professionalism (Weighted Scoring)**
-    For candidates who pass Step 1, you will calculate a final score based on two weighted factors:
-    
-    1.  **Preferred Qualifications Alignment (85% of score):**
-        - Score the candidate based on how well their experience aligns with the "preferred" qualifications.
-        - Assess the depth and relevance of their skills and experience for each preferred item.
-        - A strong match in many areas should result in a high score for this component.
+2. DETAILED SCORING (if must-haves met):
+   a) Technical Skills Match (40%): Exact and semantic matching (e.g., Python = Python programming)
+   b) Experience Relevance (30%): Industry alignment, role progression, achievement impact
+   c) Education & Certifications (15%): Degree relevance, certifications, continuous learning
+   d) Soft Skills & Culture Fit (10%): Leadership, teamwork, communication evidence
+   e) Resume Quality (5%): Structure, clarity, quantified achievements
 
-    2.  **Resume Professionalism (15% of score):**
-        - Assess the resume itself for clarity, organization, and professionalism.
-        - Consider factors like: Is it well-structured? Are there spelling or grammatical errors? Is the information presented logically and concisely?
-        - A polished, professional resume gets a higher score for this component.
+3. ADVANCED ANALYSIS:
+   - Career progression patterns (promotions, increasing responsibilities)
+   - Industry-specific keywords and technologies
+   - Quantified achievements (percentages, dollar amounts, team sizes)
+   - Employment gaps or job hopping patterns
+   - Hidden strengths not explicitly in requirements
 
-    **Scoring and Tiering:**
-    - **Overall Score:** A weighted average based on Preferred Qualifications (85%) and Resume Professionalism (15%). This score is only for candidates who pass the must-have gate.
-    - **Tiers (based on Overall Score):**
-        - **Top Tier:** 90-100
-        - **Qualified:** 70-89
-        - **Potential:** 40-69
-        - **Not Qualified:** < 40 (This tier is also for anyone who fails the must-have gate).
+4. SCORING INTELLIGENCE:
+   - Top Tier (90-100): Exceeds requirements, standout candidate
+   - Qualified (70-89): Solid match, meets most preferences
+   - Potential (40-69): Meets basics, development needed
+   - Not Qualified (<40): Missing must-haves or poor fit
 
-    **Output Format:**
-    You MUST respond with a single, valid JSON object that conforms to the EvaluationResult interface. Do not include any text or markdown outside of the JSON object.
-    Example structure:
-    {
-      "candidateId": "resume_file_name.pdf",
-      "candidateName": "Jane Doe",
-      "scores": { "overall": 85, "preferredQualifications": 90, "professionalism": 70 },
-      "mustHavesMet": true,
-      "tier": "Qualified",
-      "strengths": ["List of strengths based on preferred qualifications"],
-      "gaps": ["List of gaps based on preferred qualifications OR the unmet must-have requirement"],
-      "explanation": "A concise explanation for your reasoning, referencing the scoring methodology."
-    }
-  `;
+OUTPUT JSON:
+{
+  "candidateId": "filename",
+  "candidateName": "full name",
+  "scores": {
+    "overall": number,
+    "technicalSkills": number,
+    "experienceRelevance": number,
+    "educationCertifications": number,
+    "softSkillsCulture": number,
+    "resumeQuality": number
+  },
+  "mustHavesMet": boolean,
+  "tier": "tier name",
+  "strengths": ["top 3-5 standout qualities with evidence"],
+  "gaps": ["specific gaps or growth areas"],
+  "explanation": "Comprehensive 3-4 sentence summary with specific examples",
+  "redFlags": ["concerns like gaps, job hopping, etc."],
+  "hiringRecommendation": "Strongly recommend/Recommend/Consider/Pass with reasoning"
+}`;
 };
 
 /**
@@ -89,18 +86,15 @@ export async function evaluateCandidate(
   const client = getOpenAIClient(); // Ensures API key is checked and client is initialized
   const systemPrompt = generateSystemPrompt();
   
-  // Log which service is being used
+  // Log service usage in development
   if (process.env.NODE_ENV === 'development') {
-    console.log('📊 Resume Evaluation using:', isUsingAzure() ? 'Azure OpenAI' : 'Standard OpenAI');
-    if (isUsingAzure()) {
-      console.log('   Azure Deployment:', AZURE_CONFIG.deploymentName);
-      console.log('   Azure Endpoint:', AZURE_CONFIG.endpoint);
-    }
+    console.log('📊 Resume Evaluation using: OpenAI API');
   }
 
   try {
-    const response = await client.chat.completions.create({
-      model: isUsingAzure() ? AZURE_CONFIG.deploymentName : 'gpt-4o',
+    const response = await retryOpenAICall(
+      () => client.chat.completions.create({
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
         {
@@ -112,7 +106,9 @@ export async function evaluateCandidate(
       temperature: 0.2, // Low temperature for consistent, reliable HR evaluations
       top_p: 0.90, // Moderate-high top_p for natural language while maintaining focus
       max_tokens: 4096,
-    });
+    }),
+      `evaluate candidate ${fileName}`
+    );
 
     const result = response.choices[0].message.content;
     if (!result) {

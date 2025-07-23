@@ -13,6 +13,9 @@ import JobDescriptionUploader from '@/components/JobDescriptionUploader';
 import FloatingChatWidget from '@/components/FloatingChatWidget';
 import ProcessGuide from '@/components/ProcessGuide';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import EnhancedHeader from '@/components/EnhancedHeader';
+import EnhancedLoading, { CompactLoading } from '@/components/EnhancedLoading';
+import EnhancedResultsVisualization from '@/components/EnhancedResultsVisualization';
 
 interface JobInfo {
   jobType: JobType;
@@ -321,19 +324,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-neutral-gray-lightest">
-      <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-rush-green-DEFAULT">HR Assistant Pro</h1>
-          <p className="text-rush-charcoal-DEFAULT mt-1">Streamline Your Hiring with AI-Powered Resume Evaluation</p>
-        </div>
-      </header>
+      <EnhancedHeader />
       <main className="max-w-7xl mx-auto py-10 sm:px-6 lg:px-8 space-y-10">
         <ProcessGuide />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Left Column: Inputs */}
           <div className="lg:col-span-1 space-y-8">
-            <div className="bg-white p-6 rounded-xl shadow-lg">
-              <h2 className="text-xl font-semibold text-rush-green-DEFAULT mb-4">1. Job Description</h2>
+            <div className="card p-6 card-hover">
+              <h2 className="text-xl font-semibold text-rush-green mb-4">1. Job Description</h2>
               <JobDescriptionUploader
                 onFileAccepted={handleJobDescriptionUpload}
                 file={jobDescriptionFile}
@@ -344,12 +342,12 @@ export default function Home() {
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
                 placeholder="Or paste the job description here..."
-                className="w-full h-32 p-3 mt-4 border border-neutral-gray rounded-lg focus:ring-2 focus:ring-rush-green-DEFAULT focus:border-rush-green-DEFAULT transition"
+                className="input-field h-32 mt-4 resize-none"
                 disabled={isEvaluating}
               />
             </div>
-            <div className="bg-white p-6 rounded-xl shadow-lg">
-              <h2 className="text-xl font-semibold text-rush-green-DEFAULT mb-4">2. Key Must-Have Attributes (Optional)</h2>
+            <div className="card p-6 card-hover">
+              <h2 className="text-xl font-semibold text-rush-green mb-4">2. Key Must-Have Attributes (Optional)</h2>
               <label htmlFor="mustHaveAttributes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Please, in this box, type in the must-have qualifications for the job description uploaded from your point of view as an HR professional.
               </label>
@@ -359,43 +357,68 @@ export default function Home() {
                 onChange={(e) => setMustHaveAttributes(e.target.value)}
                 placeholder="e.g., 'Must have 5+ years of experience with Node.js AND a PMP certification.'"
                 rows={4}
-                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-rush-green focus:border-rush-green dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition"
+                className="input-field resize-none"
                 disabled={isEvaluating}
               />
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                 Please type in easy to understand plain text. These attributes will be critically evaluated.
               </p>
             </div>
-            <div className="bg-white p-6 rounded-xl shadow-lg">
-              <h2 className="text-xl font-semibold text-rush-green-DEFAULT mb-4">3. Upload Resumes</h2>
+            <div className="card p-6 card-hover">
+              <h2 className="text-xl font-semibold text-rush-green mb-4">3. Upload Resumes</h2>
               <ResumeDropzone files={files} setFiles={setFiles} disabled={isEvaluating} />
             </div>
             <button
               onClick={handleEvaluate}
               disabled={!jobDescription || files.length === 0 || isEvaluating}
-              className="w-full py-3 px-4 border border-transparent rounded-lg shadow-md text-lg font-semibold text-white bg-rush-green-DEFAULT hover:bg-rush-green-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rush-green-DEFAULT transition-transform transform hover:scale-105 disabled:bg-neutral-gray disabled:cursor-not-allowed disabled:transform-none"
+              className="btn-primary w-full text-lg"
             >
-              {isEvaluating ? 'Evaluating...' : 'Evaluate Resumes'}
+              {isEvaluating ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="loading-dots text-white">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                  </div>
+                  <span>Evaluating...</span>
+                </div>
+              ) : (
+                'Evaluate Resumes'
+              )}
             </button>
           </div>
 
           {/* Right Column: Results */}
           <div className="lg:col-span-2">
-            <div className="bg-white p-8 rounded-xl shadow-lg min-h-[40rem] flex flex-col">
+            <div className="card p-8 min-h-[40rem] flex flex-col">
               {/* Existing Results Section (empty div removed) */}
-              <h2 className="text-2xl font-bold text-rush-green-DEFAULT mb-6">Evaluation Results</h2>
+              <h2 className="text-2xl font-bold text-rush-green mb-6">Evaluation Results</h2>
               <div className="flex-grow overflow-y-auto"> {/* Wrapper for scrollable/growing content */}
               {isEvaluating && (
-                <div className="space-y-4 text-center">
-                  <p className="text-lg font-semibold text-rush-green-DEFAULT">{statusMessage || 'Preparing evaluation...'}</p>
-                  <div className="w-full bg-neutral-gray-light rounded-full h-4">
+                <div className="space-y-6 text-center">
+                  <div className="flex items-center justify-center space-x-3">
+                    <div className="loading-dots text-rush-green">
+                      <div></div>
+                      <div></div>
+                      <div></div>
+                    </div>
+                    <p className="text-lg font-semibold text-rush-green">{statusMessage || 'Preparing evaluation...'}</p>
+                  </div>
+                  <div className="progress-bar">
                     <div
-                      className="bg-rush-green-DEFAULT h-4 rounded-full transition-all duration-500 ease-out"
+                      className="progress-bar-fill"
                       style={{ width: `${progressPercentage}%` }}
                     />
                   </div>
-                  <p className="text-sm text-neutral-gray-dark">({progress} of {files.length} resumes processed)</p>
-                  {jobInfo && <p className="text-sm text-neutral-gray-dark">Detected Job Type: <span className="font-semibold">{jobInfo.jobType}</span></p>}
+                  <div className="space-y-2">
+                    <p className="text-sm text-neutral-gray-dark">({progress} of {files.length} resumes processed)</p>
+                    {jobInfo && (
+                      <div className="inline-flex items-center space-x-2 px-3 py-1 bg-rush-green/10 text-rush-green rounded-full text-sm">
+                        <span>Detected Job Type:</span>
+                        <span className="font-semibold">{jobInfo.jobType}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -408,24 +431,26 @@ export default function Home() {
               <div className="mt-6">
                 {evaluationResults.length > 0 && (
                   <div className="space-y-8">
-                    <div className="flex justify-end space-x-4">
+                    <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4">
                       <button 
                         onClick={handleExportCSV} 
                         disabled={evaluationResults.length === 0}
-                        className="px-5 py-2 border border-rush-green-DEFAULT text-sm font-medium rounded-lg text-rush-green-DEFAULT hover:bg-rush-green-light transition disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                        className="btn-secondary text-sm"
                       >
                         Export to CSV
                       </button>
                       <button 
                         onClick={handleExportPDF} 
                         disabled={evaluationResults.length === 0}
-                        className="px-5 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-rush-green-DEFAULT hover:bg-rush-green-dark transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        className="btn-primary text-sm"
                       >
                         Export to PDF
                       </button>
                     </div>
-                    {/* <AdaptiveResults results={evaluationResults} /> */}
-                    {/* ResultsDashboard will now receive results potentially enriched with quartile data */}
+                    {/* Enhanced Results Visualization */}
+                    <EnhancedResultsVisualization results={evaluationResults} jobRequirements={jobInfo?.jobRequirements} />
+                    
+                    {/* Detailed Results Table */}
                     {jobInfo && jobInfo.jobRequirements && (
                         <ResultsDashboard results={evaluationResults} jobRequirements={jobInfo.jobRequirements} />
                     )}
@@ -462,6 +487,14 @@ export default function Home() {
       </div> {/* This closes the grid container */}
       </main>
       
+      {/* Enhanced Loading Overlay */}
+      <EnhancedLoading
+        isVisible={isEvaluating}
+        progress={progressPercentage}
+        statusMessage={statusMessage}
+        onCancel={() => setIsEvaluating(false)}
+      />
+
       {/* Floating Chat Widget */}
       <ErrorBoundary>
         <FloatingChatWidget 

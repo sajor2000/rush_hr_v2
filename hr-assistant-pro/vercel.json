@@ -7,9 +7,6 @@
     "src/app/api/parse-job-description/route.ts": {
       "maxDuration": 60,
       "memory": 1024
-    },
-    "src/app/api/test-openai/route.ts": {
-      "maxDuration": 60
     }
   }
 }

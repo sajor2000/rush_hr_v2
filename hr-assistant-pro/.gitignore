@@ -34,3 +34,22 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# test data
+test_resumes/
+medical-ontology-mcp/
+rush_policy_chat/
+
+# temporary files
+*.backup
+*.tmp
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific
+.DS_Store
+Thumbs.db

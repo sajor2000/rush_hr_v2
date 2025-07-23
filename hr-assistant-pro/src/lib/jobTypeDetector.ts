@@ -1,14 +1,10 @@
 import OpenAI from 'openai';
 import { JobType } from '@/types';
-import { getAzureOpenAIClient, isUsingAzure, AZURE_CONFIG } from './azureOpenAIClient';
+import { retryOpenAICall } from './retryUtils';
 
 let openai: OpenAI | null = null;
 
 function getOpenAIClient(): OpenAI {
-  if (isUsingAzure()) {
-    return getAzureOpenAIClient() as any;
-  }
-  
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not set or empty in the environment.');
   }
@@ -20,16 +16,13 @@ function getOpenAIClient(): OpenAI {
   return openai;
 }
 
-const systemPrompt = `
-You are an expert HR analyst. Your task is to classify a job description into one of three categories: 'entry-level', 'technical', or 'general'.
+const systemPrompt = `Classify this job into one of three categories:
 
-- 'entry-level': Jobs requiring minimal experience, often in manual labor, customer service, or administrative roles. Keywords: "no experience required", "training provided", "entry-level", "associate".
-- 'technical': Jobs in fields like software engineering, data science, IT, or engineering that require specific technical skills, programming languages, or advanced degrees. Keywords: "Bachelor's/Master's/PhD in Computer Science", "experience with Python/Java/C++", "SQL", "machine learning", "cloud computing".
-- 'general': Jobs that don't fit neatly into the other two categories, such as marketing, management, or other professional roles that are not strictly technical.
+entry-level: Minimal experience, manual labor, customer service, or admin roles
+technical: IT, engineering, programming, data science requiring technical skills
+general: All other professional roles (marketing, management, etc.)
 
-Respond with a single JSON object containing one key, "jobType", with the value being one of the three categories.
-Example: {"jobType": "technical"}
-`;
+Output ONLY: {"jobType": "category"}`;
 
 /**
  * Detects the job type from a job description using the OpenAI API.
@@ -41,8 +34,9 @@ export async function detectJobType(jobDescription: string): Promise<JobType> {
   const client = getOpenAIClient(); // Ensures API key is checked and client is initialized
 
   try {
-    const response = await client.chat.completions.create({
-      model: isUsingAzure() ? AZURE_CONFIG.deploymentName : 'gpt-4o',
+    const response = await retryOpenAICall(
+      () => client.chat.completions.create({
+      model: 'gpt-4o-mini', // Using mini model for job type detection (faster/cheaper)
       messages: [
         {
           role: 'system',
@@ -57,7 +51,9 @@ export async function detectJobType(jobDescription: string): Promise<JobType> {
       temperature: 0.2, // Low temperature for consistent, reliable HR evaluations
       top_p: 0.90, // Moderate-high top_p for natural language while maintaining focus
       max_tokens: 4096,
-    });
+    }),
+      'detect job type'
+    );
 
     const result = response.choices[0].message.content;
     if (!result) {

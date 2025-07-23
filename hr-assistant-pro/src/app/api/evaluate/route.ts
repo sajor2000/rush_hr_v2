@@ -6,6 +6,7 @@ import { createHash } from 'crypto';
 import { detectJobType } from '@/lib/jobTypeDetector';
 import { extractJobRequirements } from '@/lib/requirementExtractor';
 import { evaluateCandidate } from '@/lib/candidateEvaluator';
+import { preprocessResume, estimateTokens } from '@/lib/resumePreprocessor';
 
 import { PdfReader } from 'pdfreader';
 
@@ -29,9 +30,9 @@ async function parsePdf(buffer: Buffer): Promise<string> {
 // In-memory cache for evaluation results
 const evaluationCache = new Map<string, any>();
 
-// Limit concurrency for file parsing
-const parsingLimit = pLimit(10);
-// A more conservative limit for AI API calls to avoid rate limiting
+// Limit concurrency for file parsing - increased for 40 resumes
+const parsingLimit = pLimit(15);
+// Optimized for 40 resumes: 5 concurrent API calls with smart batching
 const evaluationLimit = pLimit(5);
 
 // Helper to encode SSE messages
@@ -97,8 +98,10 @@ export async function POST(req: NextRequest) {
         );
 
         // Step 3: Evaluate each resume and stream results
-        controller.enqueue(createSseStream({ message: 'Scoring candidates...' }, 'status_update'));
-        const evaluationPromises = parsedResumes.map(resume => {
+        controller.enqueue(createSseStream({ message: 'Scoring candidates...', total: parsedResumes.length }, 'status_update'));
+        
+        let completedCount = 0;
+        const evaluationPromises = parsedResumes.map((resume, index) => {
           return evaluationLimit(async () => {
             const hash = createHash('sha256').update(resume.buffer).digest('hex');
 
@@ -124,7 +127,15 @@ export async function POST(req: NextRequest) {
             }
             
             try {
-              const result = await evaluateCandidate(resume.text, resume.fileName, jobRequirements);
+              // Preprocess resume to optimize tokens
+              const processedText = preprocessResume(resume.text);
+              const tokenEstimate = estimateTokens(processedText);
+              
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`Resume ${resume.fileName}: ~${tokenEstimate} tokens (reduced from ~${estimateTokens(resume.text)})`);
+              }
+              
+              const result = await evaluateCandidate(processedText, resume.fileName, jobRequirements);
               // Add resume text to the result for chat functionality
               const resultWithResumeText = {
                 ...result,
@@ -133,17 +144,48 @@ export async function POST(req: NextRequest) {
               // Store result in cache
               evaluationCache.set(hash, resultWithResumeText);
               controller.enqueue(createSseStream(resultWithResumeText, 'evaluation_result'));
+              
+              // Update progress every 10 resumes for 40 resume batches
+              completedCount++;
+              if (completedCount % 10 === 0 || completedCount === parsedResumes.length) {
+                const percentage = Math.round((completedCount / parsedResumes.length) * 100);
+                controller.enqueue(createSseStream({ 
+                  message: `Evaluated ${completedCount} of ${parsedResumes.length} resumes (${percentage}%)...`,
+                  progress: completedCount,
+                  total: parsedResumes.length,
+                  percentage: percentage
+                }, 'progress_update'));
+              }
             } catch (evalError) {
               const message = evalError instanceof Error ? evalError.message : 'Unknown evaluation error';
+              // Track failed evaluation for potential retry
+              completedCount++;
               controller.enqueue(createSseStream({ 
                 candidateId: resume.fileName, 
-                error: message
+                error: message,
+                retryable: !message.includes('API key') && !message.includes('401')
               }, 'evaluation_error'));
             }
           });
         });
 
-        await Promise.all(evaluationPromises);
+        const results = await Promise.allSettled(evaluationPromises);
+        
+        // Count successes and failures
+        const successCount = results.filter(r => r.status === 'fulfilled').length;
+        const failureCount = results.filter(r => r.status === 'rejected').length;
+        
+        // Send batch summary
+        if (failureCount > 0) {
+          controller.enqueue(createSseStream({ 
+            message: `Batch complete: ${successCount} succeeded, ${failureCount} failed`,
+            summary: {
+              total: parsedResumes.length,
+              succeeded: successCount,
+              failed: failureCount
+            }
+          }, 'batch_summary'));
+        }
 
         // Signal completion
         controller.enqueue(createSseStream({ message: 'done' }, 'done'));

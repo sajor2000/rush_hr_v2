@@ -89,7 +89,7 @@ const FloatingChatWidget: React.FC<FloatingChatWidgetProps> = ({
       // Focus input when opened
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [isOpen, isMinimized, hasInitialized]);
+  }, [isOpen, isMinimized, hasInitialized, candidates.length, selectedCandidate?.candidateName]);
   
   // Reset initialization when chat is closed
   useEffect(() => {
