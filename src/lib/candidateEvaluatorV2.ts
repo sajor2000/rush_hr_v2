@@ -376,6 +376,13 @@ export async function evaluateCandidateV2(
     // Determine tier based on calculated score
     const tier = determineTier(scores.overall, jobRequirements.jobType) as EvaluationResult['tier'];
 
+    // Check for potential parsing issues
+    const parsingQualityWarning = checkParsingQuality(
+      resumeText,
+      extractedData.rubricEvaluation,
+      scores.overall
+    );
+
     // Generate explanation based on score breakdown
     const explanation = generateExplanation(
       extractedData.candidateName,
@@ -405,7 +412,8 @@ export async function evaluateCandidateV2(
       softSkillsIdentified: extractedData.rubricEvaluation.softSkills.culturalFitIndicators,
       bonusReason: `Transferable skills: ${extractedData.rubricEvaluation.bonusFactors.transferableSkills.length}, Preferred qualifications: ${extractedData.rubricEvaluation.bonusFactors.preferredQualificationsMet.length}`,
       partialMatches: extractedData.partialMatches,
-      recommendationRationale: extractedData.recommendationRationale
+      recommendationRationale: extractedData.recommendationRationale,
+      parsingQualityWarning
     };
 
     return evaluation;
@@ -414,6 +422,54 @@ export async function evaluateCandidateV2(
     logger.error(`Error evaluating candidate ${fileName}:`, error);
     throw new Error(`Failed to evaluate candidate ${fileName}. Reason: ${error instanceof Error ? error.message : 'Unknown'}`);
   }
+}
+
+/**
+ * Check parsing quality and generate warning if needed
+ */
+function checkParsingQuality(
+  resumeText: string,
+  evaluation: RubricEvaluation,
+  overallScore: number
+): string | undefined {
+  const issues: string[] = [];
+  
+  // Check resume length (very short resumes might indicate parsing failure)
+  if (resumeText.length < 500) {
+    issues.push('Resume text is unusually short');
+  }
+  
+  // Check if basic sections are missing
+  const lowerText = resumeText.toLowerCase();
+  if (!lowerText.includes('experience') && !lowerText.includes('work')) {
+    issues.push('No work experience section detected');
+  }
+  if (!lowerText.includes('education') && !lowerText.includes('degree')) {
+    issues.push('No education section detected');
+  }
+  if (!lowerText.includes('skill')) {
+    issues.push('No skills section detected');
+  }
+  
+  // Check if resume quality was rated poor
+  if (evaluation.resumeQuality.clarity === 'poor' || 
+      evaluation.resumeQuality.completeness === 'sparse' ||
+      evaluation.resumeQuality.completeness === 'missing_key_info') {
+    issues.push('Resume formatting or completeness issues detected');
+  }
+  
+  // Generate warning for low scores or if multiple issues detected
+  if (overallScore < 50 || issues.length >= 2) {
+    return `⚠️ PARSING QUALITY ALERT: This candidate scored in the ${
+      overallScore < 25 ? 'Fourth' : 'Third'
+    } Quartile (${Math.round(overallScore)}%). ${
+      issues.length > 0 ? `Potential issues: ${issues.join(', ')}. ` : ''
+    }The low score may be due to resume parsing difficulties rather than candidate qualifications. ` +
+    `Common causes include: complex PDF formatting, scanned documents, image-based resumes, or non-standard layouts. ` +
+    `PLEASE MANUALLY REVIEW THE ORIGINAL RESUME DOCUMENT to ensure no qualified candidate is overlooked.`;
+  }
+  
+  return undefined;
 }
 
 /**
@@ -444,6 +500,13 @@ function generateExplanation(
     ? `Areas for development: ${gaps.slice(0, 2).join(' and ')}.`
     : 'No significant gaps identified.';
 
-  return `${candidateName} scored ${scores.overall}/100 (${scores.baseScore} base + ${scores.bonusPoints} bonus). ` +
-         `Strongest areas: ${topCategories.join(' and ')}. ${strengthSummary} ${gapSummary}`;
+  let explanation = `${candidateName} scored ${scores.overall}/100 (${scores.baseScore} base + ${scores.bonusPoints} bonus). ` +
+                   `Strongest areas: ${topCategories.join(' and ')}. ${strengthSummary} ${gapSummary}`;
+  
+  // Add parsing warning for low scores
+  if (scores.overall < 50) {
+    explanation += ' ⚠️ IMPORTANT: This low score may be due to resume parsing issues. Please manually review the original resume document.';
+  }
+  
+  return explanation;
 }

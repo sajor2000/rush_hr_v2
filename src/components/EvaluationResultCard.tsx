@@ -37,6 +37,29 @@ const EvaluationResultCard: React.FC<Props> = ({ result }) => {
         <p className="text-sm text-gray-700">{result.explanation}</p>
       </div>
 
+      {/* Parsing Quality Warning */}
+      {result.parsingQualityWarning && (
+        <div className="mt-3 p-3 bg-red-50 border-2 border-red-400 rounded-lg">
+          <div className="flex items-start">
+            <svg className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="ml-3">
+              <h4 className="text-red-800 font-bold text-sm">⚠️ MANUAL REVIEW REQUIRED</h4>
+              <p className="text-red-700 text-xs mt-1">{result.parsingQualityWarning}</p>
+              <div className="mt-2 p-2 bg-white rounded border border-red-300">
+                <p className="text-xs text-red-600 font-medium">Action Items:</p>
+                <ul className="text-xs text-red-600 mt-1 list-disc list-inside">
+                  <li>Review the original PDF/document</li>
+                  <li>Check for complex formatting or scanned images</li>
+                  <li>Verify all sections were properly extracted</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Detailed Scores */}
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-xs">
         <div className="text-center p-2 bg-gray-50 rounded">

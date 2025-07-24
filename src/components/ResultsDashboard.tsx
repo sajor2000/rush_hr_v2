@@ -100,15 +100,29 @@ const ExpandedRowContent: React.FC<{ result: EvaluationResult, jobRequirements: 
         </div>
       )}
 
+      {/* Parsing Quality Warning for Low Scores */}
+      {result.parsingQualityWarning && (
+        <div className="mt-3 p-3 bg-red-50 border-2 border-red-400 rounded-lg">
+          <div className="flex items-start">
+            <svg className="h-6 w-6 text-red-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="ml-3 flex-1">
+              <h4 className="text-red-800 font-bold">Manual Review Required - Potential Parsing Issue</h4>
+              <p className="text-red-700 text-sm mt-1">{result.parsingQualityWarning}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {result.tier === 'Fourth Quartile' && result.gaps && result.gaps.length > 0 && (!jobRequirements.mustHave || jobRequirements.mustHave.length === 0 || result.mustHavesMet === false) && (
          <div className="mt-2 pt-2 border-t border-dashed border-orange-300">
-            <p className="font-semibold text-orange-600">Areas for Development (Fourth Quartile - Manual Review Recommended):</p>
+            <p className="font-semibold text-orange-600">Areas for Development (Fourth Quartile):</p>
             <ul className="list-disc list-inside ml-2 text-orange-500">
               {result.gaps.map((gap, index) => (
                 <li key={`general-gap-${index}`}>{gap}</li>
               ))}
             </ul>
-            <p className="text-sm text-orange-600 mt-2 italic">Note: Lower scores may be due to resume parsing issues. Please review manually.</p>
           </div>
       )}
     </div>
@@ -190,9 +204,17 @@ const columns = [
       return (
         <div className="text-sm text-gray-700 max-w-md whitespace-normal">
           <p>{evaluation.explanation}</p>
+          {/* Show parsing warning inline for low scores */}
+          {evaluation.parsingQualityWarning && (
+            <div className="mt-2 p-2 bg-red-50 border border-red-300 rounded">
+              <p className="text-xs text-red-700 font-semibold">
+                ⚠️ MANUAL REVIEW REQUIRED - Potential parsing issues detected. Please review original resume.
+              </p>
+            </div>
+          )}
           {evaluation.tier === 'Fourth Quartile' && evaluation.gaps && evaluation.gaps.length > 0 && (
             <div className="mt-2 pt-1 border-t border-dashed border-orange-300">
-              <p className="font-semibold text-orange-600">Areas for Development (Fourth Quartile):</p>
+              <p className="font-semibold text-orange-600">Areas for Development:</p>
               <ul className="list-disc list-inside ml-2 text-orange-500">
                 {evaluation.gaps.map((gap, index) => (
                   <li key={index}>{gap}</li>

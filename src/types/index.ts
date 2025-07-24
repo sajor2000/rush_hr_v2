@@ -133,6 +133,7 @@ export interface EvaluationResult {
   transferableSkills?: string[]; // List of transferable skills identified and how they relate
   partialMatches?: string[]; // Requirements that are partially met with explanation
   recommendationRationale?: string; // Brief explanation of recommendation based on evidence
+  parsingQualityWarning?: string; // Warning about potential resume parsing issues for low scores
 }
 
 // --- New Types from Prompt ---
