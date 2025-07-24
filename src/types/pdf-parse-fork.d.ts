@@ -2,7 +2,7 @@ declare module 'pdf-parse-fork' {
   interface PDFPage {
     getTextContent: () => Promise<{ items: Array<{ str: string, dir: string, width: number, height: number, transform: number[], fontName: string }> }>;
     getViewport: (options: { scale: number }) => { width: number, height: number };
-    render: (options: any) => Promise<void>;
+    render: (options: { canvasContext?: CanvasRenderingContext2D; viewport?: unknown }) => Promise<void>;
   }
 
   interface _PDFDocument {
@@ -14,12 +14,18 @@ declare module 'pdf-parse-fork' {
   interface PDFData {
     numpages: number;
     numrender: number;
-    info: any; // You might want to type this more strictly if you use it
-    metadata: any; // Same here
+    info: Record<string, unknown>;
+    metadata: Record<string, unknown> | null;
     text: string;
     version: string; // e.g., '1.10.100'
   }
 
-  function pdf(dataBuffer: Buffer, options?: any): Promise<PDFData>;
+  interface PDFOptions {
+    pagerender?: (pageData: PDFPage) => Promise<string>;
+    max?: number;
+    version?: string;
+  }
+
+  function pdf(dataBuffer: Buffer, options?: PDFOptions): Promise<PDFData>;
   export default pdf;
 }

@@ -1,6 +1,7 @@
 // src/lib/chatService.ts
 import OpenAI from 'openai';
 import { ChatIntent, IntentClassificationResult, EvidenceSource, ChatContext } from '@/types/chat';
+import { logger } from './logger';
 
 // Ensure OpenAI client is properly initialized
 let openai: OpenAI | null = null;
@@ -210,16 +211,13 @@ EXPECTATIONS:
       const client = getOpenAIClient();
       
       // Log debug info only in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('💬 Chat Service using: OpenAI API');
-        console.log('Chat Service Debug:', {
-          hasCandidate: !!context.candidateName,
-          hasResumeText: !!context.resumeText,
-          hasEvaluation: !!context.evaluationResult,
-          intent: intent.intent,
-          evidenceCount: evidence.length
-        });
-      }
+      logger.debug('💬 Chat Service using: OpenAI API', {
+        hasCandidate: !!context.candidateName,
+        hasResumeText: !!context.resumeText,
+        hasEvaluation: !!context.evaluationResult,
+        intent: intent.intent,
+        evidenceCount: evidence.length
+      });
       
       const contextInfo = [
         context.candidateName ? `Candidate: ${context.candidateName}` : '',
@@ -237,16 +235,16 @@ EXPECTATIONS:
         ? `\nRelevant Evidence:\n${evidence.map(e => `- ${e.content}`).join('\n')}`
         : '\nNo specific evidence found in resume.';
 
-      // Add warning if no resume text in development
-      if (!context.resumeText && process.env.NODE_ENV === 'development') {
-        console.warn('No resume text provided - chat responses will be limited');
+      // Add warning if no resume text
+      if (!context.resumeText) {
+        logger.warn('No resume text provided - chat responses will be limited');
       }
 
-      // Only log API details in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Attempting OpenAI API call with model: gpt-4o-mini');
-        console.log('API Key present:', !!process.env.OPENAI_API_KEY);
-      }
+      // Log API details
+      logger.debug('Attempting OpenAI API call', {
+        model: 'gpt-4o-mini',
+        apiKeyPresent: !!process.env.OPENAI_API_KEY
+      });
       
       const startTime = Date.now();
       const completion = await client.chat.completions.create({
@@ -269,10 +267,10 @@ EXPECTATIONS:
       const endTime = Date.now();
       const response = completion.choices[0]?.message?.content || 'I apologize, but I cannot provide a response at this time.';
       
-      // Log performance metrics only in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('OpenAI API call successful - Response time:', endTime - startTime, 'ms');
-      }
+      // Log performance metrics
+      logger.debug('OpenAI API call successful', {
+        responseTime: `${endTime - startTime}ms`
+      });
       
       return response;
     } catch (error) {

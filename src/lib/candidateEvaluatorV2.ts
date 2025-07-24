@@ -7,6 +7,7 @@ import {
 } from '@/types';
 import { retryOpenAICall } from './retryUtils';
 import { calculateScores, determineTier } from './scoreCalculator';
+import { logger } from './logger';
 
 let openai: OpenAI | null = null;
 
@@ -165,11 +166,10 @@ export async function evaluateCandidateV2(
   const client = getOpenAIClient();
   const systemPrompt = generateRubricExtractionPrompt(jobRequirements.jobType, jobRequirements);
   
-  if (process.env.NODE_ENV === 'development') {
-    console.log('📊 Resume Evaluation V2 using: Rubric-based scoring');
-    console.log(`📋 Job Type: ${jobRequirements.jobType}`);
-    console.log(`📄 Resume: ${fileName}`);
-  }
+  logger.debug('📊 Resume Evaluation V2 using: Rubric-based scoring', {
+    jobType: jobRequirements.jobType,
+    fileName
+  });
 
   try {
     // Build the extraction request

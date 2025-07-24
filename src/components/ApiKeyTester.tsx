@@ -32,11 +32,11 @@ export default function ApiKeyTester({ className = '' }: ApiKeyTesterProps) {
           details: `All ${data.services?.length || 0} services operational`,
         });
       } else if (response.ok && data.status === 'degraded') {
-        const failedServices = data.services?.filter((s: any) => s.status === 'error') || [];
+        const failedServices = data.services?.filter((s: { status: string }) => s.status === 'error') || [];
         setTestResult({
           success: false,
           message: '⚠️ API Key works but some services are degraded',
-          details: `${failedServices.length} service(s) failed: ${failedServices.map((s: any) => s.name).join(', ')}`,
+          details: `${failedServices.length} service(s) failed: ${failedServices.map((s: { name: string }) => s.name).join(', ')}`,
         });
       } else {
         setTestResult({

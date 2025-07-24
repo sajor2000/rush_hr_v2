@@ -121,15 +121,7 @@ const FloatingChatWidget: React.FC<FloatingChatWidgetProps> = ({
     setHasNewMessage(false);
 
     try {
-      // Debug logging only in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Sending chat request with:', {
-          query: queryText,
-          candidateId: selectedCandidate?.candidateName,
-          hasResumeText: !!selectedCandidate?.resumeText,
-          resumeTextLength: selectedCandidate?.resumeText?.length
-        });
-      }
+      // Prepare chat request
 
       const requestBody = {
         query: queryText,
@@ -146,10 +138,7 @@ const FloatingChatWidget: React.FC<FloatingChatWidgetProps> = ({
         jobType: jobInfo?.jobType,
       };
       
-      // Log request details only in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Sending request to /api/chat');
-      }
+      // Send request to chat API
       
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -164,7 +153,7 @@ const FloatingChatWidget: React.FC<FloatingChatWidgetProps> = ({
 
       // Log response status only in development
       if (process.env.NODE_ENV === 'development') {
-        console.log('Response status:', response.status);
+        // Response received
       }
 
       if (!response.ok) {
@@ -174,14 +163,7 @@ const FloatingChatWidget: React.FC<FloatingChatWidgetProps> = ({
       }
 
       const data = await response.json() as ChatResponse;
-      // Log response details only in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Chat response received:', {
-          hasResponse: !!data.response,
-          intent: data.intent,
-          suggestionsCount: data.suggestions?.length
-        });
-      }
+      // Process chat response
       
       const assistantMessage: ChatMessage = {
         id: Date.now().toString() + '-assistant',

@@ -4,6 +4,7 @@ import {
   EvaluationResult,
 } from '@/types';
 import { retryOpenAICall } from './retryUtils';
+import { logger } from './logger';
 
 let openai: OpenAI | null = null;
 
@@ -366,12 +367,12 @@ export async function evaluateCandidate(
   const systemPrompt = generateSystemPrompt(jobRequirements.jobType, jobRequirements);
   
   // Log service usage in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('📊 Resume Evaluation using: OpenAI API');
-    console.log(`📋 Job Type: ${jobRequirements.jobType} - Using ${jobRequirements.jobType} evaluation criteria`);
-    console.log(`📄 Resume content preview (${fileName}):`, resumeText.substring(0, 200) + '...');
-    console.log(`📏 Resume length: ${resumeText.length} characters`);
-  }
+  logger.debug('📊 Resume Evaluation using: OpenAI API', {
+    jobType: jobRequirements.jobType,
+    fileName,
+    resumePreview: resumeText.substring(0, 200) + '...',
+    resumeLength: resumeText.length
+  });
 
   try {
     // Build the user content message

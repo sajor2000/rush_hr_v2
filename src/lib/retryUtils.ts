@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 // Retry utility for API calls with exponential backoff
 export async function withRetry<T>(
   fn: () => Promise<T>,
@@ -39,9 +41,7 @@ export async function withRetry<T>(
           onRetry(lastError, attempt + 1);
         }
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
-        }
+        logger.debug(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
         
         await new Promise(resolve => setTimeout(resolve, delay));
       }
@@ -60,9 +60,7 @@ export async function retryOpenAICall<T>(
     maxRetries: 3,
     initialDelay: 2000,
     onRetry: (error, attempt) => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`OpenAI API retry ${attempt}/3 for ${context || 'API call'}: ${error.message}`);
-      }
+      logger.debug(`OpenAI API retry ${attempt}/3 for ${context || 'API call'}: ${error.message}`);
     }
   });
 }

@@ -3,14 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ChatService } from '@/lib/chatService';
 import { ChatRequest, ChatResponse, ChatContext } from '@/types/chat';
 import { chatRateLimiter } from '@/lib/rateLimiter';
-
-// CORS headers configuration
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Max-Age': '86400',
-};
+import { getCorsHeaders } from '@/lib/corsHeaders';
+import { withSecurityHeaders } from '@/lib/securityHeaders';
+import { logger } from '@/lib/logger';
 
 // Input sanitization helper
 function sanitizeInput(input: string): string {
@@ -44,6 +39,8 @@ export async function POST(req: NextRequest) {
     return envError;
   }
 
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
   const clientIP = getClientIP(req);
   
   try {
@@ -52,9 +49,7 @@ export async function POST(req: NextRequest) {
       const resetTime = chatRateLimiter.getResetTime(clientIP);
       const remainingTime = Math.ceil((resetTime - Date.now()) / 1000);
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Rate limit exceeded for IP:', clientIP);
-      }
+      logger.warn('Rate limit exceeded', { clientIP });
       return NextResponse.json(
         { 
           error: 'Rate limit exceeded. Please try again later.',
@@ -62,12 +57,12 @@ export async function POST(req: NextRequest) {
         }, 
         { 
           status: 429,
-          headers: {
+          headers: withSecurityHeaders({
             ...corsHeaders,
             'Retry-After': remainingTime.toString(),
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': resetTime.toString()
-          }
+          })
         }
       );
     }
@@ -85,7 +80,7 @@ export async function POST(req: NextRequest) {
         }, 
         { 
           status: 500,
-          headers: corsHeaders
+          headers: withSecurityHeaders(corsHeaders)
         }
       );
     }
@@ -93,15 +88,13 @@ export async function POST(req: NextRequest) {
     // Parse and validate request body
     const body = await req.json() as ChatRequest;
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Request body received:', {
-        hasQuery: !!body.query,
-        queryLength: body.query?.length,
-        hasCandidateId: !!body.candidateId,
-        hasResumeText: !!body.resumeText,
-        hasEvaluationResult: !!body.evaluationResult
-      });
-    }
+    logger.debug('Request body received', {
+      hasQuery: !!body.query,
+      queryLength: body.query?.length,
+      hasCandidateId: !!body.candidateId,
+      hasResumeText: !!body.resumeText,
+      hasEvaluationResult: !!body.evaluationResult
+    });
     
     const { 
       query,
@@ -122,7 +115,7 @@ export async function POST(req: NextRequest) {
         { error: 'Query is required and must be a non-empty string' }, 
         { 
           status: 400,
-          headers: corsHeaders
+          headers: withSecurityHeaders(corsHeaders)
         }
       );
     }
@@ -132,7 +125,7 @@ export async function POST(req: NextRequest) {
         { error: 'Query is too long. Please limit to 1000 characters.' }, 
         { 
           status: 400,
-          headers: corsHeaders
+          headers: withSecurityHeaders(corsHeaders)
         }
       );
     }
@@ -148,7 +141,7 @@ export async function POST(req: NextRequest) {
       quartileTier: evaluationResult?.quartileTier,
       quartileRank: evaluationResult?.quartileRank,
       totalCandidates: evaluationResult?.totalQualifiedForQuartile,
-      jobType: jobType || evaluationResult?.jobType || 'general'
+      jobType: jobType || 'general'
     };
 
     // Process chat request using RISEN methodology
@@ -177,13 +170,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(chatResponse, {
       status: 200,
-      headers: corsHeaders
+      headers: withSecurityHeaders(corsHeaders)
     });
 
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Chat API error:', error);
-    }
+    logger.error('Chat API error', error);
     
     // Return appropriate error response
     if (error instanceof Error) {
@@ -192,7 +183,7 @@ export async function POST(req: NextRequest) {
           { error: 'Authentication failed. Please check API configuration.' },
           { 
             status: 401,
-            headers: corsHeaders
+            headers: withSecurityHeaders(corsHeaders)
           }
         );
       }
@@ -202,7 +193,7 @@ export async function POST(req: NextRequest) {
           { error: 'Rate limit exceeded. Please try again in a moment.' },
           { 
             status: 429,
-            headers: corsHeaders
+            headers: withSecurityHeaders(corsHeaders)
           }
         );
       }
@@ -273,9 +264,10 @@ function generateSuggestions(intent: string, context: ChatContext): string[] {
 }
 
 // OPTIONS handler for CORS preflight requests
-export async function OPTIONS() {
+export async function OPTIONS(req: NextRequest) {
+  const origin = req.headers.get('origin');
   return new NextResponse(null, { 
     status: 200,
-    headers: corsHeaders
+    headers: withSecurityHeaders(getCorsHeaders(origin))
   });
 }

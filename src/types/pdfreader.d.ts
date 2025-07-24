@@ -1,13 +1,15 @@
 declare module 'pdfreader' {
-  export class PdfReader {
-    constructor(options?: any);
-    parseBuffer(buffer: Buffer, callback: (err: any, item: any) => void): void;
-    // Add other methods if needed based on usage
+  interface PdfItem {
+    text?: string;
+    page?: number;
+    x?: number;
+    y?: number;
+    w?: number;
+    h?: number;
   }
 
-  // You can define the structure of 'item' more precisely if known
-  // interface PdfItem {
-  //   text?: string;
-  //   // other properties like x, y, w, h, etc.
-  // }
+  export class PdfReader {
+    constructor(options?: { debug?: boolean } | null);
+    parseBuffer(buffer: Buffer, callback: (err: Error | null, item: PdfItem | null) => void): void;
+  }
 }

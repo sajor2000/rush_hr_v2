@@ -5,7 +5,7 @@ export interface JobRequirements {
   description: string;
   mustHave?: string[];
   niceToHave?: string[];
-  education?: any;
+  education?: string[];
   softSkills?: string[]; // New field for extracted soft skills
 }
 
@@ -134,7 +134,11 @@ export interface JobTypeProfile {
   type: JobType;
   extractionPrompt: string;
   scoringWeights: ScoringWeights;
-  minimumRequirements: any;
+  minimumRequirements: {
+    education?: string;
+    experience?: string;
+    skills?: string[];
+  };
   evaluationFocus: string[];
 }
 

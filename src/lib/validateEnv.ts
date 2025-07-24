@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 /**
  * Validates required environment variables at startup
  */
@@ -31,10 +33,8 @@ export function validateEnvironment(): void {
     console.warn('   Please verify you\'re using a valid OpenAI API key.\n');
   }
 
-  // Log success in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('✅ Environment variables validated successfully');
-  }
+  // Log success
+  logger.info('✅ Environment variables validated successfully');
 }
 
 // Helper to safely get environment variables with fallback

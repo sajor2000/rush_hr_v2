@@ -134,12 +134,29 @@ The `vercel.json` file includes optimized settings:
 
 ## 📊 Scoring System
 
-The AI evaluates candidates across 5 categories:
-1. **Technical Skills Match** (40%)
-2. **Experience Relevance** (30%)
-3. **Education & Certifications** (15%)
-4. **Soft Skills & Culture Fit** (10%)
-5. **Resume Quality** (5%)
+### Rubric-Based Mathematical Scoring (v2)
+The application now uses a rigorous mathematical scoring system with objective rubrics:
+
+**Base Score (0-85 points)**
+- Each category has specific rubric items scored 0-10
+- Scores are weighted by job type (entry-level, technical, professional)
+- Mathematical calculation ensures consistency and fairness
+
+**Bonus Points (0-15 points)**
+- Transferable skills: +0-10 points
+- Preferred qualifications met: +0-5 points
+
+**Categories Evaluated:**
+1. **Technical Skills Match** - Exact tech matches, similar technologies, years of experience
+2. **Experience Relevance** - Industry match, role similarity, achievements, career progression
+3. **Education & Certifications** - Degree requirements, relevance, professional certifications
+4. **Soft Skills & Culture Fit** - Communication, leadership, cultural alignment, adaptability
+5. **Resume Quality** - Clarity and completeness of information
+
+**Score Breakdown Display:**
+- Visual progress bars show contribution of each category
+- Detailed mathematical calculations visible in UI
+- Addresses score clustering with precise differentiation
 
 ## 🚨 Troubleshooting
 

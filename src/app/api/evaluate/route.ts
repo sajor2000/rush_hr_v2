@@ -13,6 +13,7 @@ import { PdfReader } from 'pdfreader';
 import { logger } from '@/lib/logger';
 import { LRUCache } from '@/lib/lruCache';
 import { getCorsHeaders } from '@/lib/corsHeaders';
+import { withSecurityHeaders } from '@/lib/securityHeaders';
 
 async function parsePdf(buffer: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -433,12 +434,12 @@ export async function POST(req: NextRequest) {
   });
 
   return new Response(stream, {
-    headers: {
+    headers: withSecurityHeaders({
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
       ...getCorsHeaders(origin),
-    },
+    }),
   });
 }
 
@@ -446,6 +447,6 @@ export async function OPTIONS(req: NextRequest) {
   const origin = req.headers.get('origin');
   return new Response(null, {
     status: 200,
-    headers: getCorsHeaders(origin),
+    headers: withSecurityHeaders(getCorsHeaders(origin)),
   });
 }

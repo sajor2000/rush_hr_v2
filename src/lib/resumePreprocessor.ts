@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 // Resume preprocessing to optimize token usage
 export function preprocessResume(resumeText: string): string {
   // Preserve original formatting better
@@ -68,10 +70,8 @@ function extractSections(text: string): ResumeSections {
   };
   
   // Debug logging in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Resume preprocessing - total lines:', lines.length);
-    console.log('First 5 lines:', lines.slice(0, 5));
-  }
+  logger.debug('Resume preprocessing - total lines:', { lineCount: lines.length });
+  logger.debug('First 5 lines:', { lines: lines.slice(0, 5) });
   
   lines.forEach(line => {
     const trimmedLine = line.trim();
@@ -123,15 +123,15 @@ function buildStructuredResume(sections: ResumeSections, originalText: string): 
   const parts: string[] = [];
   
   // Debug what sections were found
-  if (process.env.NODE_ENV === 'development') {
-    const foundSections = Object.keys(sections).filter(key => sections[key as keyof ResumeSections]);
-    console.log('Sections found:', foundSections);
-    console.log('Section lengths:', Object.entries(sections).map(([key, val]) => `${key}: ${val?.length || 0} chars`));
-    
-    // Log if very few sections were detected
-    if (foundSections.length <= 2) {
-      console.warn('Warning: Only', foundSections.length, 'sections detected. Section detection may have failed.');
-    }
+  const foundSections = Object.keys(sections).filter(key => sections[key as keyof ResumeSections]);
+  logger.debug('Sections found:', { sections: foundSections });
+  logger.debug('Section lengths:', { 
+    lengths: Object.entries(sections).map(([key, val]) => `${key}: ${val?.length || 0} chars`) 
+  });
+  
+  // Log if very few sections were detected
+  if (foundSections.length <= 2) {
+    logger.warn('Section detection may have failed', { sectionsFound: foundSections.length });
   }
   
   if (sections.contact) {
@@ -166,19 +166,15 @@ function buildStructuredResume(sections: ResumeSections, originalText: string): 
   const extractedLength = parts.join('').length;
   const structuredResult = parts.join('\n\n');
   
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Extraction summary:', {
-      originalLength: originalText.length,
-      extractedLength,
-      extractionRatio: (extractedLength / originalText.length * 100).toFixed(1) + '%'
-    });
-  }
+  logger.debug('Extraction summary:', {
+    originalLength: originalText.length,
+    extractedLength,
+    extractionRatio: (extractedLength / originalText.length * 100).toFixed(1) + '%'
+  });
   
   // If extraction failed (less than 30% of original), return original
   if (extractedLength < originalText.length * 0.3) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('Preprocessing extracted too little content, returning original text');
-    }
+    logger.warn('Preprocessing extracted too little content, returning original text');
     return originalText;  // Return original instead of poorly extracted version
   }
   

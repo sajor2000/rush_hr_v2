@@ -1,4 +1,6 @@
 // src/types/chat.ts
+import { EvaluationResult } from './index';
+
 export interface ChatMessage {
   id: string;
   text: string;
@@ -13,7 +15,7 @@ export interface ChatRequest {
   query: string;
   candidateId?: string;
   resumeText?: string;
-  evaluationResult?: any; // TODO: Import proper EvaluationResult type
+  evaluationResult?: EvaluationResult;
   jobDescription?: string;
   mustHaveAttributes?: string;
   sessionId?: string;
@@ -44,10 +46,10 @@ export interface ChatContext {
   candidateName?: string;
   candidateId?: string;
   resumeText?: string;
-  evaluationResult?: any;
+  evaluationResult?: EvaluationResult;
   jobDescription?: string;
   mustHaveAttributes?: string;
-  jobRequirements?: any;
+  jobRequirements?: EvaluationResult['rubricEvaluation'];
   quartileTier?: string; // Q1-Q4 ranking
   quartileRank?: number; // Rank within all candidates
   totalCandidates?: number; // Total candidates evaluated
