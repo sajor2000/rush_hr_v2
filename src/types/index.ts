@@ -41,10 +41,62 @@ export interface Skill {
   proficiency?: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
 }
 
+// Rubric evaluation for objective scoring
+export interface RubricEvaluation {
+  technicalSkills: {
+    requiredTechsFound: string[];
+    similarTechsFound: string[];
+    yearsOfExperience: number;
+    projectComplexity: 'none' | 'learning' | 'basic' | 'medium' | 'enterprise';
+  };
+  experience: {
+    industryMatch: 'exact' | 'healthcare_related' | 'similar_regulated' | 'transferable' | 'unrelated';
+    roleMatch: 'exact' | 'very_similar' | 'related' | 'some_overlap' | 'different';
+    quantifiableAchievements: string[];
+    careerProgression: 'clear_advancement' | 'steady_growth' | 'lateral_moves' | 'gaps_explained' | 'concerning_pattern';
+  };
+  education: {
+    meetsRequirement: 'exceeds' | 'meets' | 'equivalent_experience' | 'related' | 'none';
+    relevanceToRole: 'directly_relevant' | 'somewhat_relevant' | 'transferable_skills' | 'unrelated';
+    certifications: string[];
+  };
+  softSkills: {
+    communicationEvidence: 'extensive' | 'good' | 'some' | 'none';
+    leadershipExperience: 'formal' | 'project' | 'team' | 'individual';
+    culturalFitIndicators: string[];
+    adaptabilityEvidence: 'highly_adaptable' | 'shows_flexibility' | 'some_evidence' | 'rigid_approach';
+  };
+  resumeQuality: {
+    clarity: 'exceptional' | 'well_organized' | 'adequate' | 'needs_improvement' | 'poor';
+    completeness: 'comprehensive' | 'mostly_complete' | 'adequate' | 'missing_key_info' | 'sparse';
+  };
+  bonusFactors: {
+    transferableSkills: string[];
+    preferredQualificationsMet: string[];
+  };
+}
+
+// Score breakdown for transparency
+export interface ScoreBreakdown {
+  category: string;
+  rawScore: number;
+  maxPossible: number;
+  weight: number;
+  weightedScore: number;
+  details: Array<{
+    item: string;
+    points: number;
+    maxPoints: number;
+    reason: string;
+  }>;
+}
+
 export interface EvaluationResult {
   candidateId: string;
   candidateName: string;
   resumeText?: string; // Raw resume text for chat analysis
+  rubricEvaluation?: RubricEvaluation; // New: Objective rubric data
+  scoreBreakdown?: ScoreBreakdown[]; // New: Detailed score calculation
   scores: {
     overall: number;
     preferredQualifications?: number; // Legacy field for backward compatibility

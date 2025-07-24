@@ -6,6 +6,7 @@ import { createHash } from 'crypto';
 import { detectJobType } from '@/lib/jobTypeDetector';
 import { extractJobRequirements } from '@/lib/requirementExtractor';
 import { evaluateCandidate } from '@/lib/candidateEvaluator';
+import { evaluateCandidateV2 } from '@/lib/candidateEvaluatorV2';
 import { preprocessResume, estimateTokens } from '@/lib/resumePreprocessor';
 
 import { PdfReader } from 'pdfreader';
@@ -337,7 +338,11 @@ export async function POST(req: NextRequest) {
               });
             }
             
-            const result = await evaluateCandidate(textToEvaluate, resume.fileName, jobRequirements);
+            // Use new rubric-based evaluation if enabled
+            const useRubricScoring = process.env.USE_RUBRIC_SCORING === 'true' || true; // Default to new system
+            const result = useRubricScoring 
+              ? await evaluateCandidateV2(textToEvaluate, resume.fileName, jobRequirements)
+              : await evaluateCandidate(textToEvaluate, resume.fileName, jobRequirements);
             
             // Add resume text to the result for chat functionality
             // Limit response size for Vercel (remove large resume text if over 1MB)

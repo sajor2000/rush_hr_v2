@@ -119,6 +119,56 @@ const EvaluationResultCard: React.FC<Props> = ({ result }) => {
           </ul>
         </div>
       )}
+
+      {/* Score Breakdown - NEW */}
+      {result.scoreBreakdown && (
+        <div className="mt-4 p-3 bg-gray-50 rounded">
+          <h4 className="font-semibold text-gray-800 text-sm mb-2">Score Breakdown (Mathematical Calculation):</h4>
+          <div className="space-y-2">
+            {result.scoreBreakdown
+              .filter(category => category.category !== 'bonus')
+              .map((category, i) => (
+                <div key={i} className="text-xs">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-medium capitalize">{category.category.replace(/([A-Z])/g, ' $1').trim()}</span>
+                    <span className="text-gray-600">
+                      {category.rawScore.toFixed(1)}/{category.maxPossible} 
+                      ({(category.rawScore/category.maxPossible * 100).toFixed(0)}%)
+                      × {(category.weight * 100).toFixed(0)}% = 
+                      <span className="font-semibold ml-1">{category.weightedScore.toFixed(1)}</span>
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(category.rawScore/category.maxPossible * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            
+            {/* Bonus Points */}
+            {result.scoreBreakdown.find(c => c.category === 'bonus') && (
+              <div className="mt-2 pt-2 border-t border-gray-300">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-medium">Bonus Points</span>
+                  <span className="font-semibold text-green-600">
+                    +{result.scoreBreakdown.find(c => c.category === 'bonus')?.rawScore || 0}
+                  </span>
+                </div>
+              </div>
+            )}
+            
+            {/* Total Score */}
+            <div className="mt-2 pt-2 border-t border-gray-300">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">Total Score</span>
+                <span className="text-lg font-bold text-gray-800">{result.scores.overall}/100</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
