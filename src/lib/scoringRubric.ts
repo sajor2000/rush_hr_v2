@@ -288,31 +288,47 @@ export const preferredQualificationsRubric: RubricItem[] = [
   }
 ];
 
-// Job Type Weights - New distribution: Required (50%) + Preferred (20%) + Other (30%)
+// Job Type Weights - Flexible distribution based on job type
 export const jobTypeWeights = {
   'entry-level': {
-    requiredQualifications: 0.50,    // 50% - Primary factor
-    preferredQualifications: 0.20,   // 20% - Secondary factor
-    softSkills: 0.10,               // 10% - Part of 30% other factors
-    transferableSkills: 0.08,       // 8%
-    experience: 0.07,               // 7% - Industry/role relevance
-    resumeQuality: 0.05             // 5%
+    requiredQualifications: 0.40,    // 40% - Lower for entry-level
+    preferredQualifications: 0.15,   // 15% - Nice to have
+    softSkills: 0.15,               // 15% - Higher emphasis on attitude
+    transferableSkills: 0.15,       // 15% - Very important for entry-level
+    experience: 0.10,               // 10% - Less emphasis on specific experience
+    resumeQuality: 0.05,            // 5%
+    technicalDepth: 0,              // Not used for entry-level
+    leadershipExperience: 0         // Not used for entry-level
   },
   'technical': {
-    requiredQualifications: 0.50,    // 50% - Primary factor
-    preferredQualifications: 0.20,   // 20% - Secondary factor
-    softSkills: 0.10,               // 10% - Part of 30% other factors
-    transferableSkills: 0.08,       // 8%
-    experience: 0.07,               // 7% - Industry/role relevance
-    resumeQuality: 0.05             // 5%
+    requiredQualifications: 0.55,    // 55% - Critical technical skills
+    preferredQualifications: 0.20,   // 20% - Advanced skills
+    technicalDepth: 0.10,           // 10% - Project complexity, depth
+    experience: 0.08,               // 8% - Industry/role relevance
+    softSkills: 0.05,               // 5% - Still important
+    resumeQuality: 0.02,            // 2%
+    transferableSkills: 0,          // Not used for technical roles
+    leadershipExperience: 0         // Not used for technical roles
+  },
+  'operational': {
+    requiredQualifications: 0.45,    // 45% - Management experience
+    preferredQualifications: 0.20,   // 20% - Advanced qualifications
+    leadershipExperience: 0.15,     // 15% - Leadership specific
+    softSkills: 0.10,               // 10% - Communication, leadership
+    experience: 0.07,               // 7% - Industry experience
+    resumeQuality: 0.03,            // 3%
+    transferableSkills: 0,          // Not used for operational roles
+    technicalDepth: 0               // Not used for operational roles
   },
   'general': {
-    requiredQualifications: 0.50,    // 50% - Primary factor
+    requiredQualifications: 0.50,    // 50% - Balanced approach
     preferredQualifications: 0.20,   // 20% - Secondary factor
     softSkills: 0.10,               // 10% - Part of 30% other factors
     transferableSkills: 0.08,       // 8%
     experience: 0.07,               // 7% - Industry/role relevance
-    resumeQuality: 0.05             // 5%
+    resumeQuality: 0.05,            // 5%
+    technicalDepth: 0,              // Not used for general roles
+    leadershipExperience: 0         // Not used for general roles
   }
 };
 
@@ -338,39 +354,93 @@ export const transferableSkillsRubric: RubricItem[] = [
  */
 export function getRubricForJobType(jobType: string): CategoryRubric[] {
   const weights = jobTypeWeights[jobType as keyof typeof jobTypeWeights] || jobTypeWeights.general;
+  const rubrics: CategoryRubric[] = [];
   
-  return [
-    {
-      category: 'requiredQualifications',
-      weight: weights.requiredQualifications,
-      items: requiredQualificationsRubric
-    },
-    {
-      category: 'preferredQualifications',
-      weight: weights.preferredQualifications,
-      items: preferredQualificationsRubric
-    },
-    {
+  // Always include required and preferred qualifications
+  rubrics.push({
+    category: 'requiredQualifications',
+    weight: weights.requiredQualifications,
+    items: requiredQualificationsRubric
+  });
+  
+  rubrics.push({
+    category: 'preferredQualifications',
+    weight: weights.preferredQualifications,
+    items: preferredQualificationsRubric
+  });
+  
+  // Add job-type specific categories
+  if (jobType === 'entry-level') {
+    rubrics.push({
       category: 'softSkills',
       weight: weights.softSkills,
       items: softSkillsRubric
-    },
-    {
+    });
+    rubrics.push({
       category: 'transferableSkills',
       weight: weights.transferableSkills,
       items: transferableSkillsRubric
-    },
-    {
+    });
+    rubrics.push({
       category: 'experience',
       weight: weights.experience,
-      items: experienceRubric  // Now only focused on industry/role relevance
-    },
-    {
-      category: 'resumeQuality',
-      weight: weights.resumeQuality,
-      items: resumeQualityRubric
-    }
-  ];
+      items: experienceRubric
+    });
+  } else if (jobType === 'technical') {
+    rubrics.push({
+      category: 'technicalSkills',
+      weight: weights.technicalDepth || 0.10,
+      items: technicalSkillsRubric  // Focus on depth and complexity
+    });
+    rubrics.push({
+      category: 'experience',
+      weight: weights.experience,
+      items: experienceRubric
+    });
+    rubrics.push({
+      category: 'softSkills',
+      weight: weights.softSkills,
+      items: softSkillsRubric
+    });
+  } else if (jobType === 'operational') {
+    // For operational roles, experience category covers leadership & industry
+    rubrics.push({
+      category: 'experience',
+      weight: (weights.leadershipExperience || 0.15) + weights.experience,
+      items: experienceRubric  // Includes career progression, achievements, industry match
+    });
+    rubrics.push({
+      category: 'softSkills',
+      weight: weights.softSkills,
+      items: softSkillsRubric
+    });
+  } else {
+    // General - balanced approach
+    rubrics.push({
+      category: 'softSkills',
+      weight: weights.softSkills || 0.10,
+      items: softSkillsRubric
+    });
+    rubrics.push({
+      category: 'transferableSkills',
+      weight: weights.transferableSkills || 0.08,
+      items: transferableSkillsRubric
+    });
+    rubrics.push({
+      category: 'experience',
+      weight: weights.experience || 0.07,
+      items: experienceRubric
+    });
+  }
+  
+  // Always add resume quality at the end
+  rubrics.push({
+    category: 'resumeQuality',
+    weight: weights.resumeQuality,
+    items: resumeQualityRubric
+  });
+  
+  return rubrics;
 }
 
 /**

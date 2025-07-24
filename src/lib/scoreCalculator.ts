@@ -436,11 +436,98 @@ function countExactRequiredMatches(evaluation: RubricEvaluation, jobRequirements
   }
 
   let exactMatches = 0;
+  const jobType = jobRequirements.jobType;
 
-  // Check technical requirements
+  // Check each requirement
   for (const req of jobRequirements.mustHave) {
     const reqLower = req.toLowerCase();
     
+    // Entry-level specific checks
+    if (jobType === 'entry-level') {
+      // Check availability/shift requirements
+      if (reqLower.includes('shift') || reqLower.includes('available') || reqLower.includes('schedule')) {
+        // Check in soft skills cultural fit indicators
+        if (evaluation.softSkills.culturalFitIndicators.some(indicator => 
+          indicator.toLowerCase().includes('flexible') || 
+          indicator.toLowerCase().includes('available') ||
+          indicator.toLowerCase().includes('shift')
+        )) {
+          exactMatches++;
+          continue;
+        }
+      }
+      
+      // Check physical requirements
+      if (reqLower.includes('lift') || reqLower.includes('stand') || reqLower.includes('physical')) {
+        if (evaluation.softSkills.culturalFitIndicators.some(indicator => 
+          indicator.toLowerCase().includes('physical') || 
+          indicator.toLowerCase().includes('fit') ||
+          indicator.toLowerCase().includes('active')
+        )) {
+          exactMatches++;
+          continue;
+        }
+      }
+      
+      // Check location requirements
+      if (reqLower.includes('location') || reqLower.includes('commute') || reqLower.includes('local')) {
+        if (evaluation.softSkills.culturalFitIndicators.some(indicator => 
+          indicator.toLowerCase().includes('local') || 
+          indicator.toLowerCase().includes('commute') ||
+          indicator.toLowerCase().includes('relocate')
+        )) {
+          exactMatches++;
+          continue;
+        }
+      }
+    }
+    
+    // Technical job specific checks
+    if (jobType === 'technical') {
+      // Check for specific programming languages/frameworks
+      if (evaluation.technicalSkills.requiredTechsFound.some(tech => 
+        reqLower.includes(tech.toLowerCase()) || tech.toLowerCase().includes(reqLower)
+      )) {
+        exactMatches++;
+        continue;
+      }
+      
+      // Check for project complexity requirements
+      if (reqLower.includes('large scale') || reqLower.includes('enterprise') || reqLower.includes('production')) {
+        if (evaluation.technicalSkills.projectComplexity === 'enterprise' || 
+            evaluation.technicalSkills.projectComplexity === 'medium') {
+          exactMatches++;
+          continue;
+        }
+      }
+    }
+    
+    // Operational/Management specific checks
+    if (jobType === 'operational') {
+      // Check management experience
+      if (reqLower.includes('manage') || reqLower.includes('lead') || reqLower.includes('supervise')) {
+        if (evaluation.softSkills.leadershipExperience === 'formal' || 
+            evaluation.softSkills.leadershipExperience === 'project') {
+          exactMatches++;
+          continue;
+        }
+      }
+      
+      // Check for P&L or budget responsibility
+      if (reqLower.includes('budget') || reqLower.includes('p&l') || reqLower.includes('financial')) {
+        if (evaluation.experience.quantifiableAchievements.some(achievement => 
+          achievement.toLowerCase().includes('budget') || 
+          achievement.toLowerCase().includes('cost') ||
+          achievement.toLowerCase().includes('revenue') ||
+          achievement.toLowerCase().includes('savings')
+        )) {
+          exactMatches++;
+          continue;
+        }
+      }
+    }
+    
+    // Standard checks for all job types
     // Check if it's a technical requirement
     if (evaluation.technicalSkills.requiredTechsFound.some(tech => 
       reqLower.includes(tech.toLowerCase()) || tech.toLowerCase().includes(reqLower)
@@ -488,10 +575,75 @@ function evaluatePartialMatches(evaluation: RubricEvaluation, jobRequirements: E
 
   let partialScore = 0;
   const totalRequirements = jobRequirements.mustHave.length;
+  const jobType = jobRequirements.jobType;
 
   for (const req of jobRequirements.mustHave) {
     const reqLower = req.toLowerCase();
     
+    // Entry-level partial matches
+    if (jobType === 'entry-level') {
+      // Partial credit for willingness/potential
+      if (reqLower.includes('shift') || reqLower.includes('available')) {
+        if (evaluation.softSkills.adaptabilityEvidence === 'highly_adaptable' || 
+            evaluation.softSkills.adaptabilityEvidence === 'shows_flexibility') {
+          partialScore += 0.7; // High credit for flexibility
+          continue;
+        }
+      }
+      
+      // Physical requirements - check transferable skills
+      if (reqLower.includes('physical') || reqLower.includes('lift')) {
+        if (evaluation.bonusFactors.transferableSkills.some(skill => 
+          skill.toLowerCase().includes('warehouse') || 
+          skill.toLowerCase().includes('construction') ||
+          skill.toLowerCase().includes('manual')
+        )) {
+          partialScore += 0.8; // High credit for related physical work
+          continue;
+        }
+      }
+    }
+    
+    // Technical partial matches
+    if (jobType === 'technical') {
+      // Similar technologies get high partial credit
+      if (evaluation.technicalSkills.similarTechsFound.some(tech => 
+        reqLower.includes(tech.toLowerCase()) || tech.toLowerCase().includes(reqLower)
+      )) {
+        partialScore += 0.8; // 80% credit for similar technology in technical roles
+        continue;
+      }
+      
+      // Learning projects get some credit
+      if (reqLower.includes('production') || reqLower.includes('enterprise')) {
+        if (evaluation.technicalSkills.projectComplexity === 'basic' || 
+            evaluation.technicalSkills.projectComplexity === 'learning') {
+          partialScore += 0.4; // Some credit for any project experience
+          continue;
+        }
+      }
+    }
+    
+    // Operational partial matches
+    if (jobType === 'operational') {
+      // Team collaboration gets partial credit for management
+      if (reqLower.includes('manage') || reqLower.includes('lead')) {
+        if (evaluation.softSkills.leadershipExperience === 'team') {
+          partialScore += 0.6; // Good credit for team collaboration
+          continue;
+        }
+      }
+      
+      // Any quantifiable achievements get partial credit for P&L
+      if (reqLower.includes('budget') || reqLower.includes('p&l')) {
+        if (evaluation.experience.quantifiableAchievements.length > 0) {
+          partialScore += 0.5; // Credit for any quantifiable achievements
+          continue;
+        }
+      }
+    }
+    
+    // Standard partial matches for all job types
     // Check similar technologies
     if (evaluation.technicalSkills.similarTechsFound.some(tech => 
       reqLower.includes(tech.toLowerCase()) || tech.toLowerCase().includes(reqLower)

@@ -137,7 +137,7 @@ export interface EvaluationResult {
 
 // --- New Types from Prompt ---
 
-export type JobType = 'entry-level' | 'technical' | 'general';
+export type JobType = 'entry-level' | 'technical' | 'operational' | 'general';
 
 export interface JobTypeProfile {
   type: JobType;
