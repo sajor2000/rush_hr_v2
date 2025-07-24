@@ -21,7 +21,7 @@ async function parsePdf(buffer: Buffer): Promise<string> {
     const startTime = Date.now();
     const contentParts: string[] = [];
     
-    // Safety timeout for PDF parsing (20 seconds)
+    // Safety timeout for PDF parsing (9 seconds for Vercel compatibility)
     const timeout = setTimeout(() => {
       logger.warn('PDF parsing taking too long, returning partial content', {
         itemCount,
@@ -29,7 +29,7 @@ async function parsePdf(buffer: Buffer): Promise<string> {
         contentLength: content.length
       });
       resolve(content.trim() || contentParts.join(' ').trim());
-    }, 20000);
+    }, 9000);
     
     try {
       new PdfReader(null).parseBuffer(buffer, (err, item) => {
@@ -192,6 +192,13 @@ async function parseResume(file: File): Promise<{ fileName: string; text: string
 }
 
 export async function POST(req: NextRequest) {
+  // Validate environment variables first
+  const { validateEnvironment } = await import('@/lib/envMiddleware');
+  const envError = validateEnvironment();
+  if (envError) {
+    return envError;
+  }
+
   const startTime = Date.now();
   const origin = req.headers.get('origin');
   logger.apiRequest('POST', '/api/evaluate', { origin });
@@ -292,7 +299,7 @@ export async function POST(req: NextRequest) {
             // Check if preprocessing should be skipped
             const skipPreprocessing = process.env.SKIP_RESUME_PREPROCESSING === 'true';
             const originalTokens = estimateTokens(resume.text);
-            const TOKEN_THRESHOLD = 8000; // Only preprocess if exceeds this
+            const TOKEN_THRESHOLD = 20000; // Only preprocess if exceeds this (≈80k characters)
             
             let textToEvaluate = resume.text;
             let wasPreprocessed = false;
@@ -300,12 +307,21 @@ export async function POST(req: NextRequest) {
             // Only preprocess if not skipped and tokens exceed threshold
             if (!skipPreprocessing && originalTokens > TOKEN_THRESHOLD) {
               const processedText = preprocessResume(resume.text);
-              // const processedTokens = estimateTokens(processedText); // May use for logging later
+              const processedTokens = estimateTokens(processedText);
               
               // Use processed text only if it retains enough content
               if (processedText.length >= resume.text.length * 0.5) {
                 textToEvaluate = processedText;
                 wasPreprocessed = true;
+                
+                if (process.env.NODE_ENV === 'development') {
+                  logger.debug(`Resume preprocessing applied`, {
+                    fileName: resume.fileName,
+                    originalTokens,
+                    processedTokens,
+                    tokenReduction: `${((originalTokens - processedTokens) / originalTokens * 100).toFixed(1)}%`
+                  });
+                }
               }
             }
             
@@ -322,13 +338,19 @@ export async function POST(req: NextRequest) {
             }
             
             const result = await evaluateCandidate(textToEvaluate, resume.fileName, jobRequirements);
+            
             // Add resume text to the result for chat functionality
+            // Limit response size for Vercel (remove large resume text if over 1MB)
+            const MAX_RESUME_SIZE = 1024 * 1024; // 1MB
             const resultWithResumeText = {
               ...result,
-              resumeText: resume.text
+              resumeText: resume.text.length < MAX_RESUME_SIZE ? resume.text : '[Resume text too large to include]'
             };
-            // Store result in cache
-            evaluationCache.set(hash, resultWithResumeText);
+            
+            // Store result in cache (with full text for internal use)
+            evaluationCache.set(hash, { ...result, resumeText: resume.text });
+            
+            // Send result to client (with size-limited text)
             controller.enqueue(createSseStream(resultWithResumeText, 'evaluation_result'));
             
             completedCount++;

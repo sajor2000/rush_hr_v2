@@ -55,16 +55,36 @@ export default function Home() {
 
     const rankedResults = sortedCandidates.map((candidate, index) => {
       const rank = index + 1;
+      const score = candidate.scores.overall;
       let quartileTier = '';
-      if (rank <= q1End) quartileTier = 'Q1 - Best Candidates (Top 25%)';
-      else if (rank <= q2End) quartileTier = 'Q2 - Strong Candidates (26-50%)';
-      else if (rank <= q3End) quartileTier = 'Q3 - Fair Candidates (51-75%)';
-      else quartileTier = 'Q4 - Weak Fit (Bottom 25%)';
+      let scoreContext = '';
+      
+      // Determine quartile based on rank
+      if (rank <= q1End) {
+        quartileTier = 'Q1 - Best Candidates (Top 25%)';
+      } else if (rank <= q2End) {
+        quartileTier = 'Q2 - Strong Candidates (26-50%)';
+      } else if (rank <= q3End) {
+        quartileTier = 'Q3 - Fair Candidates (51-75%)';
+      } else {
+        quartileTier = 'Q4 - Weak Fit (Bottom 25%)';
+      }
+      
+      // Add score-based context when there's a mismatch between score and quartile
+      if (score >= 80 && (quartileTier.includes('Q3') || quartileTier.includes('Q4'))) {
+        scoreContext = ' (High scorer in competitive pool)';
+      } else if (score >= 70 && quartileTier.includes('Q4')) {
+        scoreContext = ' (Strong score in competitive pool)';
+      } else if (score >= 60 && quartileTier.includes('Q4')) {
+        scoreContext = ' (Good score among many qualified candidates)';
+      } else if (score < 40 && (quartileTier.includes('Q1') || quartileTier.includes('Q2'))) {
+        scoreContext = ' (Best available in limited pool)';
+      }
       
       return {
         ...candidate,
         quartileRank: rank,
-        quartileTier,
+        quartileTier: quartileTier + scoreContext,
         totalQualifiedForQuartile: totalCandidates,
       };
     });

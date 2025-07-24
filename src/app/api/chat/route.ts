@@ -37,6 +37,13 @@ function getClientIP(req: NextRequest): string {
 }
 
 export async function POST(req: NextRequest) {
+  // Validate environment variables first
+  const { validateEnvironment } = await import('@/lib/envMiddleware');
+  const envError = validateEnvironment();
+  if (envError) {
+    return envError;
+  }
+
   const clientIP = getClientIP(req);
   
   try {

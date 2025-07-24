@@ -71,6 +71,7 @@ export interface EvaluationResult {
   preferredQualificationsMet?: string[]; // List of preferred qualifications the candidate has
   softSkillsIdentified?: string[]; // List of soft skills demonstrated
   bonusReason?: string; // Explanation of why bonus points were awarded
+  transferableSkills?: string[]; // List of transferable skills identified and how they relate
 }
 
 // --- New Types from Prompt ---

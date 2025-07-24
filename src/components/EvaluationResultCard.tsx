@@ -89,6 +89,36 @@ const EvaluationResultCard: React.FC<Props> = ({ result }) => {
           </ul>
         </div>
       )}
+
+      {/* Transferable Skills */}
+      {result.transferableSkills && result.transferableSkills.length > 0 && (
+        <div className="mt-3 p-2 bg-purple-50 rounded">
+          <h4 className="font-semibold text-purple-700 text-sm">Transferable Skills:</h4>
+          <ul className="list-disc list-inside text-sm text-purple-600 mt-1">
+            {result.transferableSkills.map((skill, i) => <li key={i}>{skill}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {/* Preferred Qualifications Met */}
+      {result.preferredQualificationsMet && result.preferredQualificationsMet.length > 0 && (
+        <div className="mt-3 p-2 bg-blue-50 rounded">
+          <h4 className="font-semibold text-blue-700 text-sm">Preferred Qualifications Met:</h4>
+          <ul className="list-disc list-inside text-sm text-blue-600 mt-1">
+            {result.preferredQualificationsMet.map((qual, i) => <li key={i}>{qual}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {/* Soft Skills Identified */}
+      {result.softSkillsIdentified && result.softSkillsIdentified.length > 0 && (
+        <div className="mt-3 p-2 bg-teal-50 rounded">
+          <h4 className="font-semibold text-teal-700 text-sm">Soft Skills Demonstrated:</h4>
+          <ul className="list-disc list-inside text-sm text-teal-600 mt-1">
+            {result.softSkillsIdentified.map((skill, i) => <li key={i}>{skill}</li>)}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
