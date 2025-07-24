@@ -105,15 +105,16 @@ export interface EvaluationResult {
   scoreBreakdown?: ScoreBreakdown[]; // New: Detailed score calculation
   scores: {
     overall: number;
-    preferredQualifications?: number; // Legacy field for backward compatibility
+    preferredQualifications?: number; // Now main scoring component (20%)
     professionalism?: number; // Legacy field for backward compatibility
     technicalSkills: number;
     experienceRelevance: number;
     educationCertifications: number;
     softSkillsCulture: number;
     resumeQuality: number;
-    baseScore?: number; // Base score (0-85) before bonus points
-    bonusPoints?: number; // Bonus points (0-15) for preferred qualifications and soft skills
+    baseScore?: number; // Now same as overall (no scaling)
+    bonusPoints?: number; // Always 0 in new system
+    requiredQualifications?: number; // New primary scoring component (50%)
   };
   mustHavesMet: boolean;
   tier: 'First Quartile' | 'Second Quartile' | 'Third Quartile' | 'Fourth Quartile';

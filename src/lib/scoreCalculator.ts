@@ -6,8 +6,6 @@
 import { RubricEvaluation, ScoreBreakdown, EnhancedJobRequirements } from '@/types';
 import { 
   getRubricForJobType, 
-  transferableSkillsBonus, 
-  preferredQualificationsBonus,
   RubricItem
 } from './scoringRubric';
 
@@ -263,7 +261,129 @@ function calculateItemScore(
       return { points, reason };
     }
     
-    // Bonus Items
+    // Required Qualifications (New primary scoring)
+    case 'req_exact_match': {
+      const total = jobRequirements.mustHave?.length || 0;
+      // Count how many required qualifications are exactly met
+      const exactMet = countExactRequiredMatches(evaluation, jobRequirements);
+      const percentage = total > 0 ? (exactMet / total) * 100 : 100; // 100% if no requirements
+      
+      let points = 0;
+      let reason = '';
+      
+      if (percentage >= 100) {
+        points = item.scoringGuide['all_met'];
+        reason = 'All required qualifications met';
+      } else if (percentage >= 90) {
+        points = item.scoringGuide['90_percent'];
+        reason = `${exactMet} of ${total} required qualifications met`;
+      } else if (percentage >= 80) {
+        points = item.scoringGuide['80_percent'];
+        reason = `${exactMet} of ${total} required qualifications met`;
+      } else if (percentage >= 70) {
+        points = item.scoringGuide['70_percent'];
+        reason = `${exactMet} of ${total} required qualifications met`;
+      } else if (percentage >= 60) {
+        points = item.scoringGuide['60_percent'];
+        reason = `${exactMet} of ${total} required qualifications met`;
+      } else if (percentage >= 50) {
+        points = item.scoringGuide['50_percent'];
+        reason = `${exactMet} of ${total} required qualifications met`;
+      } else if (percentage >= 40) {
+        points = item.scoringGuide['40_percent'];
+        reason = `${exactMet} of ${total} required qualifications met`;
+      } else if (percentage >= 30) {
+        points = item.scoringGuide['30_percent'];
+        reason = `${exactMet} of ${total} required qualifications met`;
+      } else if (percentage >= 20) {
+        points = item.scoringGuide['20_percent'];
+        reason = `${exactMet} of ${total} required qualifications met`;
+      } else if (percentage >= 10) {
+        points = item.scoringGuide['10_percent'];
+        reason = `${exactMet} of ${total} required qualifications met`;
+      } else {
+        points = item.scoringGuide['none'];
+        reason = 'No required qualifications met';
+      }
+      
+      return { points, reason };
+    }
+
+    case 'req_partial_match': {
+      // Evaluate partial/equivalent matches for requirements
+      const partialScore = evaluatePartialMatches(evaluation, jobRequirements);
+      
+      let points = 0;
+      let reason = '';
+      
+      if (partialScore >= 0.8) {
+        points = item.scoringGuide['strong_equivalents'];
+        reason = 'Strong equivalent experience for most requirements';
+      } else if (partialScore >= 0.6) {
+        points = item.scoringGuide['good_equivalents'];
+        reason = 'Good equivalent experience for several requirements';
+      } else if (partialScore >= 0.4) {
+        points = item.scoringGuide['some_equivalents'];
+        reason = 'Some equivalent experience found';
+      } else if (partialScore >= 0.2) {
+        points = item.scoringGuide['weak_equivalents'];
+        reason = 'Limited equivalent experience';
+      } else {
+        points = item.scoringGuide['none'];
+        reason = 'No equivalent experience found';
+      }
+      
+      return { points, reason };
+    }
+
+    // Preferred Qualifications (Now main scoring, not bonus)
+    case 'pref_match': {
+      const total = jobRequirements.niceToHave?.length || 0;
+      const met = evaluation.bonusFactors.preferredQualificationsMet.length;
+      const percentage = total > 0 ? (met / total) * 100 : 100; // 100% if no preferences
+      
+      let points = 0;
+      let reason = '';
+      
+      if (percentage >= 100) {
+        points = item.scoringGuide['all_met'];
+        reason = 'All preferred qualifications met';
+      } else if (percentage >= 90) {
+        points = item.scoringGuide['90_percent'];
+        reason = `${met} of ${total} preferred qualifications met`;
+      } else if (percentage >= 80) {
+        points = item.scoringGuide['80_percent'];
+        reason = `${met} of ${total} preferred qualifications met`;
+      } else if (percentage >= 70) {
+        points = item.scoringGuide['70_percent'];
+        reason = `${met} of ${total} preferred qualifications met`;
+      } else if (percentage >= 60) {
+        points = item.scoringGuide['60_percent'];
+        reason = `${met} of ${total} preferred qualifications met`;
+      } else if (percentage >= 50) {
+        points = item.scoringGuide['50_percent'];
+        reason = `${met} of ${total} preferred qualifications met`;
+      } else if (percentage >= 40) {
+        points = item.scoringGuide['40_percent'];
+        reason = `${met} of ${total} preferred qualifications met`;
+      } else if (percentage >= 30) {
+        points = item.scoringGuide['30_percent'];
+        reason = `${met} of ${total} preferred qualifications met`;
+      } else if (percentage >= 20) {
+        points = item.scoringGuide['20_percent'];
+        reason = `${met} of ${total} preferred qualifications met`;
+      } else if (percentage >= 10) {
+        points = item.scoringGuide['10_percent'];
+        reason = `${met} of ${total} preferred qualifications met`;
+      } else {
+        points = item.scoringGuide['none'];
+        reason = 'No preferred qualifications met';
+      }
+      
+      return { points, reason };
+    }
+
+    // Transferable Skills (Now main scoring, not bonus)
     case 'transferable_skills': {
       const count = evaluation.bonusFactors.transferableSkills.length;
       let points = 0;
@@ -289,34 +409,6 @@ function calculateItemScore(
       return { points, reason };
     }
     
-    case 'preferred_quals': {
-      const total = jobRequirements.niceToHave?.length || 0;
-      const met = evaluation.bonusFactors.preferredQualificationsMet.length;
-      const percentage = total > 0 ? (met / total) * 100 : 0;
-      
-      let points = 0;
-      let reason = '';
-      
-      if (percentage >= 100) {
-        points = item.scoringGuide['all_met'];
-        reason = 'All preferred qualifications met';
-      } else if (percentage >= 75) {
-        points = item.scoringGuide['most_met'];
-        reason = `${met} of ${total} preferred qualifications met`;
-      } else if (percentage >= 50) {
-        points = item.scoringGuide['some_met'];
-        reason = `${met} of ${total} preferred qualifications met`;
-      } else if (percentage > 0) {
-        points = item.scoringGuide['few_met'];
-        reason = `${met} of ${total} preferred qualifications met`;
-      } else {
-        points = item.scoringGuide['none'];
-        reason = 'No preferred qualifications met';
-      }
-      
-      return { points, reason };
-    }
-    
     default:
       return { points: 0, reason: 'Unknown rubric item' };
   }
@@ -336,6 +428,107 @@ function extractYearsFromRequirements(mustHaves: string[]): number {
 }
 
 /**
+ * Count how many required qualifications are exactly met
+ */
+function countExactRequiredMatches(evaluation: RubricEvaluation, jobRequirements: EnhancedJobRequirements): number {
+  if (!jobRequirements.mustHave || jobRequirements.mustHave.length === 0) {
+    return 0;
+  }
+
+  let exactMatches = 0;
+
+  // Check technical requirements
+  for (const req of jobRequirements.mustHave) {
+    const reqLower = req.toLowerCase();
+    
+    // Check if it's a technical requirement
+    if (evaluation.technicalSkills.requiredTechsFound.some(tech => 
+      reqLower.includes(tech.toLowerCase()) || tech.toLowerCase().includes(reqLower)
+    )) {
+      exactMatches++;
+      continue;
+    }
+
+    // Check if it's an education requirement
+    if (reqLower.includes('degree') || reqLower.includes('education')) {
+      if (evaluation.education.meetsRequirement === 'meets' || evaluation.education.meetsRequirement === 'exceeds') {
+        exactMatches++;
+        continue;
+      }
+    }
+
+    // Check if it's an experience requirement
+    if (reqLower.includes('years') && reqLower.includes('experience')) {
+      const yearsRequired = extractYearsFromRequirements([req]);
+      if (evaluation.technicalSkills.yearsOfExperience >= yearsRequired) {
+        exactMatches++;
+        continue;
+      }
+    }
+
+    // Check if it's a certification requirement
+    if (evaluation.education.certifications.some(cert => 
+      reqLower.includes(cert.toLowerCase()) || cert.toLowerCase().includes(reqLower)
+    )) {
+      exactMatches++;
+      continue;
+    }
+  }
+
+  return exactMatches;
+}
+
+/**
+ * Evaluate partial matches for requirements
+ */
+function evaluatePartialMatches(evaluation: RubricEvaluation, jobRequirements: EnhancedJobRequirements): number {
+  if (!jobRequirements.mustHave || jobRequirements.mustHave.length === 0) {
+    return 1; // Perfect score if no requirements
+  }
+
+  let partialScore = 0;
+  const totalRequirements = jobRequirements.mustHave.length;
+
+  for (const req of jobRequirements.mustHave) {
+    const reqLower = req.toLowerCase();
+    
+    // Check similar technologies
+    if (evaluation.technicalSkills.similarTechsFound.some(tech => 
+      reqLower.includes(tech.toLowerCase()) || tech.toLowerCase().includes(reqLower)
+    )) {
+      partialScore += 0.7; // 70% credit for similar technology
+      continue;
+    }
+
+    // Check transferable skills
+    if (evaluation.bonusFactors.transferableSkills.some(skill => 
+      skill.toLowerCase().includes(reqLower) || reqLower.includes(skill.toLowerCase())
+    )) {
+      partialScore += 0.5; // 50% credit for transferable skill
+      continue;
+    }
+
+    // Check related education
+    if (reqLower.includes('degree') && evaluation.education.meetsRequirement === 'related') {
+      partialScore += 0.6; // 60% credit for related degree
+      continue;
+    }
+
+    // Check experience years (partial credit)
+    if (reqLower.includes('years') && reqLower.includes('experience')) {
+      const yearsRequired = extractYearsFromRequirements([req]);
+      const yearsFound = evaluation.technicalSkills.yearsOfExperience;
+      if (yearsFound > 0 && yearsFound < yearsRequired) {
+        partialScore += (yearsFound / yearsRequired) * 0.8; // Proportional credit up to 80%
+        continue;
+      }
+    }
+  }
+
+  return partialScore / totalRequirements;
+}
+
+/**
  * Calculate all scores based on rubric evaluation
  */
 export function calculateScores(
@@ -352,13 +545,14 @@ export function calculateScores(
     resumeQuality: number;
     baseScore: number;
     bonusPoints: number;
+    requiredQualifications?: number;
+    preferredQualifications?: number;
   };
   breakdown: ScoreBreakdown[];
 } {
   const rubrics = getRubricForJobType(jobType);
   const breakdown: ScoreBreakdown[] = [];
   let totalWeightedScore = 0;
-  let bonusPoints = 0;
   
   // Calculate scores for each category
   const categoryScores: Record<string, number> = {};
@@ -403,38 +597,8 @@ export function calculateScores(
     breakdown.push(categoryBreakdown);
   }
   
-  // Calculate bonus points
-  const transferableScore = calculateItemScore(transferableSkillsBonus, evaluation, jobRequirements);
-  const preferredScore = calculateItemScore(preferredQualificationsBonus, evaluation, jobRequirements);
-  
-  bonusPoints = transferableScore.points + preferredScore.points;
-  
-  // Add bonus breakdown
-  breakdown.push({
-    category: 'bonus',
-    rawScore: bonusPoints,
-    maxPossible: transferableSkillsBonus.maxPoints + preferredQualificationsBonus.maxPoints,
-    weight: 0, // Bonus points are not weighted
-    weightedScore: bonusPoints,
-    details: [
-      {
-        item: transferableSkillsBonus.description,
-        points: transferableScore.points,
-        maxPoints: transferableSkillsBonus.maxPoints,
-        reason: transferableScore.reason
-      },
-      {
-        item: preferredQualificationsBonus.description,
-        points: preferredScore.points,
-        maxPoints: preferredQualificationsBonus.maxPoints,
-        reason: preferredScore.reason
-      }
-    ]
-  });
-  
-  // Calculate final scores
-  const baseScore = Math.round(totalWeightedScore * 0.85); // Scale to 0-85 range
-  const overall = Math.min(100, baseScore + bonusPoints);
+  // Calculate final scores - No more 85% scaling or bonus points
+  const overall = Math.round(totalWeightedScore);
   
   return {
     scores: {
@@ -444,8 +608,10 @@ export function calculateScores(
       educationCertifications: categoryScores['education'] || 0,
       softSkillsCulture: categoryScores['softSkills'] || 0,
       resumeQuality: categoryScores['resumeQuality'] || 0,
-      baseScore,
-      bonusPoints
+      baseScore: overall, // No longer scaled
+      bonusPoints: 0, // No more bonus points
+      requiredQualifications: categoryScores['requiredQualifications'] || 0,
+      preferredQualifications: categoryScores['preferredQualifications'] || 0
     },
     breakdown
   };

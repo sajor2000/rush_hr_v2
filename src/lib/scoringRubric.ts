@@ -232,59 +232,106 @@ export const resumeQualityRubric: RubricItem[] = [
   }
 ];
 
-// Job Type Weights
+// Required Qualifications Rubric - Primary scoring factor (50%)
+export const requiredQualificationsRubric: RubricItem[] = [
+  {
+    id: 'req_exact_match',
+    description: 'Required qualifications exact match',
+    maxPoints: 7,
+    scoringGuide: {
+      'all_met': 7,
+      '90_percent': 6.3,
+      '80_percent': 5.6,
+      '70_percent': 4.9,
+      '60_percent': 4.2,
+      '50_percent': 3.5,
+      '40_percent': 2.8,
+      '30_percent': 2.1,
+      '20_percent': 1.4,
+      '10_percent': 0.7,
+      'none': 0
+    }
+  },
+  {
+    id: 'req_partial_match',
+    description: 'Partial/equivalent matches for requirements',
+    maxPoints: 3,
+    scoringGuide: {
+      'strong_equivalents': 3,
+      'good_equivalents': 2.5,
+      'some_equivalents': 2,
+      'weak_equivalents': 1,
+      'none': 0
+    }
+  }
+];
+
+// Preferred Qualifications Rubric - Secondary scoring factor (20%)
+export const preferredQualificationsRubric: RubricItem[] = [
+  {
+    id: 'pref_match',
+    description: 'Preferred qualifications match',
+    maxPoints: 10,
+    scoringGuide: {
+      'all_met': 10,
+      '90_percent': 9,
+      '80_percent': 8,
+      '70_percent': 7,
+      '60_percent': 6,
+      '50_percent': 5,
+      '40_percent': 4,
+      '30_percent': 3,
+      '20_percent': 2,
+      '10_percent': 1,
+      'none': 0
+    }
+  }
+];
+
+// Job Type Weights - New distribution: Required (50%) + Preferred (20%) + Other (30%)
 export const jobTypeWeights = {
   'entry-level': {
-    softSkills: 0.35,
-    experience: 0.20,
-    education: 0.20,
-    technicalSkills: 0.20,
-    resumeQuality: 0.05
+    requiredQualifications: 0.50,    // 50% - Primary factor
+    preferredQualifications: 0.20,   // 20% - Secondary factor
+    softSkills: 0.10,               // 10% - Part of 30% other factors
+    transferableSkills: 0.08,       // 8%
+    experience: 0.07,               // 7% - Industry/role relevance
+    resumeQuality: 0.05             // 5%
   },
   'technical': {
-    technicalSkills: 0.40,
-    experience: 0.30,
-    education: 0.15,
-    softSkills: 0.10,
-    resumeQuality: 0.05
+    requiredQualifications: 0.50,    // 50% - Primary factor
+    preferredQualifications: 0.20,   // 20% - Secondary factor
+    softSkills: 0.10,               // 10% - Part of 30% other factors
+    transferableSkills: 0.08,       // 8%
+    experience: 0.07,               // 7% - Industry/role relevance
+    resumeQuality: 0.05             // 5%
   },
   'general': {
-    experience: 0.35,
-    technicalSkills: 0.25,
-    education: 0.20,
-    softSkills: 0.15,
-    resumeQuality: 0.05
+    requiredQualifications: 0.50,    // 50% - Primary factor
+    preferredQualifications: 0.20,   // 20% - Secondary factor
+    softSkills: 0.10,               // 10% - Part of 30% other factors
+    transferableSkills: 0.08,       // 8%
+    experience: 0.07,               // 7% - Industry/role relevance
+    resumeQuality: 0.05             // 5%
   }
 };
 
-// Transferable Skills Bonus Rubric
-export const transferableSkillsBonus: RubricItem = {
-  id: 'transferable_skills',
-  description: 'Transferable skills identified',
-  maxPoints: 10, // Bonus points
-  scoringGuide: {
-    'multiple_strong': 10,
-    'several_relevant': 7,
-    'some_relevant': 5,
-    'few_relevant': 3,
-    'minimal': 1,
-    'none': 0
+// Transferable Skills Rubric - Now part of main scoring (8%)
+export const transferableSkillsRubric: RubricItem[] = [
+  {
+    id: 'transferable_skills',
+    description: 'Transferable skills identified',
+    maxPoints: 10,
+    scoringGuide: {
+      'multiple_strong': 10,
+      'several_relevant': 7,
+      'some_relevant': 5,
+      'few_relevant': 3,
+      'minimal': 1,
+      'none': 0
+    }
   }
-};
-
-// Preferred Qualifications Bonus Rubric
-export const preferredQualificationsBonus: RubricItem = {
-  id: 'preferred_quals',
-  description: 'Preferred qualifications met',
-  maxPoints: 5, // Bonus points
-  scoringGuide: {
-    'all_met': 5,
-    'most_met': 4,
-    'some_met': 2,
-    'few_met': 1,
-    'none': 0
-  }
-};
+];
 
 /**
  * Get rubric configuration for a specific job type
@@ -294,24 +341,29 @@ export function getRubricForJobType(jobType: string): CategoryRubric[] {
   
   return [
     {
-      category: 'technicalSkills',
-      weight: weights.technicalSkills,
-      items: technicalSkillsRubric
+      category: 'requiredQualifications',
+      weight: weights.requiredQualifications,
+      items: requiredQualificationsRubric
     },
     {
-      category: 'experience',
-      weight: weights.experience,
-      items: experienceRubric
-    },
-    {
-      category: 'education',
-      weight: weights.education,
-      items: educationRubric
+      category: 'preferredQualifications',
+      weight: weights.preferredQualifications,
+      items: preferredQualificationsRubric
     },
     {
       category: 'softSkills',
       weight: weights.softSkills,
       items: softSkillsRubric
+    },
+    {
+      category: 'transferableSkills',
+      weight: weights.transferableSkills,
+      items: transferableSkillsRubric
+    },
+    {
+      category: 'experience',
+      weight: weights.experience,
+      items: experienceRubric  // Now only focused on industry/role relevance
     },
     {
       category: 'resumeQuality',
@@ -332,10 +384,6 @@ export function getMaxScoreForJobType(jobType: string): number {
     const categoryMax = rubric.items.reduce((sum, item) => sum + item.maxPoints, 0);
     maxScore += categoryMax * rubric.weight;
   }
-  
-  // Add maximum bonus points
-  maxScore += transferableSkillsBonus.maxPoints;
-  maxScore += preferredQualificationsBonus.maxPoints;
   
   return maxScore;
 }
