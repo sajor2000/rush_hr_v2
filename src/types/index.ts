@@ -62,9 +62,14 @@ export interface RubricEvaluation {
   };
   softSkills: {
     communicationEvidence: 'extensive' | 'good' | 'some' | 'none';
+    communicationExamples?: string[];
     leadershipExperience: 'formal' | 'project' | 'team' | 'individual';
+    leadershipExamples?: string[];
     culturalFitIndicators: string[];
     adaptabilityEvidence: 'highly_adaptable' | 'shows_flexibility' | 'some_evidence' | 'rigid_approach';
+    adaptabilityExamples?: string[];
+    problemSolvingExamples?: string[];
+    emotionalIntelligenceExamples?: string[];
   };
   resumeQuality: {
     clarity: 'exceptional' | 'well_organized' | 'adequate' | 'needs_improvement' | 'poor';
@@ -73,6 +78,7 @@ export interface RubricEvaluation {
   bonusFactors: {
     transferableSkills: string[];
     preferredQualificationsMet: string[];
+    additionalStrengths?: string[];
   };
 }
 
@@ -124,6 +130,8 @@ export interface EvaluationResult {
   softSkillsIdentified?: string[]; // List of soft skills demonstrated
   bonusReason?: string; // Explanation of why bonus points were awarded
   transferableSkills?: string[]; // List of transferable skills identified and how they relate
+  partialMatches?: string[]; // Requirements that are partially met with explanation
+  recommendationRationale?: string; // Brief explanation of recommendation based on evidence
 }
 
 // --- New Types from Prompt ---

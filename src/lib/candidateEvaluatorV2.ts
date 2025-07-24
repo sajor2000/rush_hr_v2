@@ -24,22 +24,117 @@ function getOpenAIClient(): OpenAI {
 }
 
 // Generate the rubric extraction prompt
-const generateRubricExtractionPrompt = (jobType: string, _jobRequirements: EnhancedJobRequirements): string => {
+// Generate job-specific transferable skills based on job requirements
+const generateJobSpecificTransferableSkills = (jobRequirements: EnhancedJobRequirements): string => {
+  const jobTitle = jobRequirements.title?.toLowerCase() || '';
+  const jobDescription = jobRequirements.description?.toLowerCase() || '';
+  const skills: string[] = [];
+
+  // Healthcare/Hospital specific
+  if (jobTitle.includes('hospital') || jobTitle.includes('health') || jobTitle.includes('clinical') || 
+      jobDescription.includes('patient') || jobDescription.includes('medical')) {
+    skills.push(
+      '- House cleaning/Janitorial → Understanding of sanitation protocols critical for hospital environments',
+      '- Food service → Experience with health department regulations and hygiene standards',
+      '- Childcare → Patient care skills, especially for pediatric units',
+      '- Eldercare → Experience with vulnerable populations, patience, and compassion',
+      '- Veterinary experience → Medical environment familiarity, handling biological materials'
+    );
+  }
+
+  // Customer service roles
+  if (jobTitle.includes('coordinator') || jobTitle.includes('assistant') || jobTitle.includes('service') ||
+      jobDescription.includes('customer') || jobDescription.includes('client')) {
+    skills.push(
+      '- Retail experience → Direct customer interaction and conflict resolution',
+      '- Call center → Phone etiquette and handling difficult conversations',
+      '- Hospitality → Service excellence and attention to detail',
+      '- Banking/Finance → Accuracy with sensitive information and regulatory compliance'
+    );
+  }
+
+  // Technical roles
+  if (jobTitle.includes('developer') || jobTitle.includes('engineer') || jobTitle.includes('analyst') ||
+      jobDescription.includes('programming') || jobDescription.includes('technical')) {
+    skills.push(
+      '- Gaming/Modding → Problem-solving and debugging skills',
+      '- Data entry → Attention to detail and systematic approach',
+      '- Excel power user → Data manipulation and analytical thinking',
+      '- Technical writing → Documentation skills crucial for code maintenance'
+    );
+  }
+
+  // Administrative roles
+  if (jobTitle.includes('admin') || jobTitle.includes('office') || jobTitle.includes('coordinator')) {
+    skills.push(
+      '- Event planning → Project management and vendor coordination',
+      '- Teaching → Training and documentation creation abilities',
+      '- Small business experience → Wearing multiple hats and prioritization',
+      '- Military → Following procedures and maintaining accurate records'
+    );
+  }
+
+  // Physical/Manual roles
+  if (jobDescription.includes('physical') || jobDescription.includes('lifting') || jobDescription.includes('standing')) {
+    skills.push(
+      '- Warehouse work → Experience with safety protocols and equipment',
+      '- Construction → Understanding of safety regulations and teamwork',
+      '- Delivery driver → Time management and route optimization',
+      '- Manufacturing → Quality control and process improvement'
+    );
+  }
+
+  // If no specific skills identified, return general transferable skills
+  if (skills.length === 0) {
+    skills.push(
+      '- Any customer-facing role → Communication and interpersonal skills',
+      '- Any team environment → Collaboration and conflict resolution',
+      '- Any deadline-driven role → Time management and prioritization',
+      '- Any regulated industry → Attention to compliance and documentation'
+    );
+  }
+
+  return skills.join('\n');
+};
+
+const generateRubricExtractionPrompt = (jobType: string, jobRequirements: EnhancedJobRequirements): string => {
+  // Build job-specific context
+  const requiredSkills = jobRequirements.mustHave?.join(', ') || 'Not specified';
+  const preferredSkills = jobRequirements.niceToHave?.join(', ') || 'Not specified';
+  const jobTitle = jobRequirements.title || 'Position';
+  
   const basePrompt = [
     `You are an expert HR analyst extracting FACTUAL information from resumes for objective evaluation.`,
-    `Job Type: ${jobType}`,
+    ``,
+    `JOB CONTEXT:`,
+    `- Job Title: ${jobTitle}`,
+    `- Job Type: ${jobType}`,
+    `- Required Qualifications: ${requiredSkills}`,
+    `- Preferred Qualifications: ${preferredSkills}`,
     ``,
     `CRITICAL INSTRUCTIONS:`,
     `- Extract ONLY factual information that can be verified from the resume`,
     `- DO NOT generate scores or make subjective judgments`,
     `- Extract the candidate's FULL NAME from the resume`,
-    `- Be INCLUSIVE in recognizing transferable skills`,
+    `- Be VERY INCLUSIVE in recognizing transferable skills`,
+    `- Consider HOW skills from different contexts apply to THIS specific role`,
     ``,
     `EXTRACT THE FOLLOWING INFORMATION:`,
     ``,
-    `1. TECHNICAL SKILLS:`,
+    `1. REQUIRED QUALIFICATIONS MATCHING:`,
+    `   For EACH required qualification listed above, be VERY INCLUSIVE:`,
+    `   - Mark if found EXACTLY in resume (yes/no)`,
+    `   - If not exact, note ANY SIMILAR/EQUIVALENT experience that could qualify`,
+    `   - Consider PARTIAL matches (e.g., "3 years experience" when requirement is "5 years")`,
+    `   - Note the CONTEXT where this qualification appears`,
+    `   - For experience requirements:`,
+    `     * Calculate TOTAL years across ALL relevant positions`,
+    `     * Include internships, part-time, and contract work`,
+    `     * Consider adjacent field experience (e.g., nursing experience for medical assistant role)`,
+    ``,
+    `2. TECHNICAL SKILLS:`,
     `   - List all technologies/tools that match the required skills EXACTLY`,
-    `   - List related/similar technologies (e.g., MySQL for PostgreSQL requirement)`,
+    `   - List related/similar technologies with explanation of similarity`,
     `   - Count total years of relevant technical experience`,
     `   - Assess project complexity based on descriptions:`,
     `     * "enterprise" = large-scale, production systems, high impact`,
@@ -79,11 +174,26 @@ const generateRubricExtractionPrompt = (jobType: string, _jobRequirements: Enhan
     `   - Relevance: "directly_relevant", "somewhat_relevant", "transferable_skills", "unrelated"`,
     `   - List all professional certifications`,
     ``,
-    `4. SOFT SKILLS:`,
-    `   - Communication evidence: "extensive", "good", "some", "none"`,
-    `   - Leadership: "formal", "project", "team", "individual"`,
-    `   - List specific cultural fit indicators (e.g., "patient-focused", "collaborative")`,
-    `   - Adaptability: "highly_adaptable", "shows_flexibility", "some_evidence", "rigid_approach"`,
+    `4. SOFT SKILLS (Extract evidence, not just labels):`,
+    `   - Communication evidence:`,
+    `     * Look for: presentations, training others, customer interaction, writing samples`,
+    `     * Rate: "extensive" (multiple examples), "good" (clear examples), "some" (mentioned), "none"`,
+    `   - Leadership experience:`,
+    `     * "formal" = titled positions (manager, lead, supervisor)`,
+    `     * "project" = led specific projects or initiatives`,
+    `     * "team" = collaborative leadership, mentoring`,
+    `     * "individual" = no leadership evidence`,
+    `   - Cultural fit indicators - Extract SPECIFIC examples of:`,
+    `     * Values alignment (e.g., "patient-focused", "quality-driven", "collaborative")`,
+    `     * Work style (e.g., "detail-oriented", "fast-paced", "methodical")`,
+    `     * Team dynamics (e.g., "cross-functional collaboration", "independent worker")`,
+    `   - Adaptability evidence:`,
+    `     * "highly_adaptable" = career pivots, diverse roles, learns new skills`,
+    `     * "shows_flexibility" = handles change, multiple responsibilities`,
+    `     * "some_evidence" = minor examples of adaptation`,
+    `     * "rigid_approach" = no evidence of flexibility`,
+    `   - Problem-solving examples: List specific instances where candidate solved problems`,
+    `   - Emotional intelligence: Evidence of empathy, self-awareness, relationship management`,
     ``,
     `5. RESUME QUALITY:`,
     `   - Clarity: "exceptional", "well_organized", "adequate", "needs_improvement", "poor"`,
@@ -92,14 +202,42 @@ const generateRubricExtractionPrompt = (jobType: string, _jobRequirements: Enhan
     `6. BONUS FACTORS:`,
     `   - List ALL transferable skills with explanations (e.g., "Customer service in retail → Patient interaction")`,
     `   - List which preferred qualifications are met`,
+    `   - For each transferable skill, explain HOW it applies to ${jobTitle}`,
     ``,
-    `IMPORTANT NOTES ON TRANSFERABLE SKILLS:`,
-    `- House cleaning → Hospital environmental services`,
-    `- Retail → Customer service, patient interaction`,
-    `- Military → Following procedures, discipline, leadership`,
-    `- Food service → Fast-paced environment, customer focus`,
-    `- Warehouse → Physical stamina, equipment operation`,
-    `- Any cleaning experience → Environmental services`,
+    `COMPREHENSIVE TRANSFERABLE SKILLS MAPPING:`,
+    ``,
+    `For Healthcare/Hospital Roles:`,
+    `- House cleaning/Janitorial → Hospital environmental services, infection control awareness`,
+    `- Retail/Customer Service → Patient interaction, handling difficult situations`,
+    `- Food Service → Fast-paced environment, hygiene standards, customer care`,
+    `- Hospitality → Patient comfort, service orientation, attention to detail`,
+    `- Military → Following strict protocols, chain of command, discipline, reliability`,
+    `- Childcare/Eldercare → Patient care skills, empathy, safety awareness`,
+    `- Manufacturing → Quality control, safety procedures, equipment operation`,
+    ``,
+    `For Technical Roles:`,
+    `- Self-taught projects → Initiative, learning ability, practical application`,
+    `- Different programming languages → Ability to learn new technologies`,
+    `- IT support → Problem-solving, user communication, technical troubleshooting`,
+    `- Data entry → Attention to detail, accuracy, computer skills`,
+    `- Gaming/Modding → Problem-solving, technical skills, community collaboration`,
+    ``,
+    `For Administrative/Professional Roles:`,
+    `- Volunteer coordination → Project management, stakeholder communication`,
+    `- Small business owner → Multi-tasking, budget management, customer relations`,
+    `- Teaching/Training → Communication, presentation, mentoring abilities`,
+    `- Sales → Negotiation, relationship building, goal achievement`,
+    `- Event planning → Organization, deadline management, vendor coordination`,
+    ``,
+    `Universal Transferable Skills:`,
+    `- Team sports → Teamwork, communication, working under pressure`,
+    `- Leadership in ANY context → Management potential`,
+    `- Multi-language skills → Communication, cultural awareness`,
+    `- Academic projects → Research, analysis, presentation skills`,
+    `- Crisis/emergency experience → Calm under pressure, quick decision-making`,
+    ``,
+    `IMPORTANT: For ${jobTitle}, particularly look for:`,
+    `${generateJobSpecificTransferableSkills(jobRequirements)}`,
     ``,
     `OUTPUT FORMAT:`,
     `Return a JSON object with the exact structure shown below. Fill in ALL fields based on the resume.`
@@ -134,9 +272,14 @@ const generateOutputFormat = (): string => {
     },
     "softSkills": {
       "communicationEvidence": "extensive|good|some|none",
+      "communicationExamples": ["specific examples of communication skills"],
       "leadershipExperience": "formal|project|team|individual",
+      "leadershipExamples": ["specific leadership instances"],
       "culturalFitIndicators": ["specific indicators found"],
-      "adaptabilityEvidence": "highly_adaptable|shows_flexibility|some_evidence|rigid_approach"
+      "adaptabilityEvidence": "highly_adaptable|shows_flexibility|some_evidence|rigid_approach",
+      "adaptabilityExamples": ["specific examples of adaptability"],
+      "problemSolvingExamples": ["specific problem-solving instances"],
+      "emotionalIntelligenceExamples": ["examples of EI"]
     },
     "resumeQuality": {
       "clarity": "exceptional|well_organized|adequate|needs_improvement|poor",
@@ -144,14 +287,17 @@ const generateOutputFormat = (): string => {
     },
     "bonusFactors": {
       "transferableSkills": ["skill → how it applies"],
-      "preferredQualificationsMet": ["list of preferred quals met"]
+      "preferredQualificationsMet": ["list of preferred quals met"],
+      "additionalStrengths": ["other notable qualifications not in requirements"]
     }
   },
   "mustHavesMet": boolean,
-  "strengths": ["top 3-5 factual strengths"],
-  "gaps": ["specific missing requirements"],
+  "partialMatches": ["requirements that are partially met with explanation"],
+  "strengths": ["top 3-5 factual strengths with evidence"],
+  "gaps": ["specific missing requirements with context"],
   "redFlags": ["concerning patterns if any"],
-  "hiringRecommendation": "Strongly recommend|Recommend|Consider|Pass"
+  "hiringRecommendation": "Strongly recommend|Recommend|Consider|Pass",
+  "recommendationRationale": "Brief explanation of recommendation based on evidence"
 }`;
 };
 
@@ -212,10 +358,12 @@ export async function evaluateCandidateV2(
       candidateName: string;
       rubricEvaluation: RubricEvaluation;
       mustHavesMet: boolean;
+      partialMatches?: string[];
       strengths: string[];
       gaps: string[];
       redFlags?: string[];
       hiringRecommendation: string;
+      recommendationRationale?: string;
     };
 
     // Calculate scores mathematically based on rubric evaluation
@@ -255,13 +403,15 @@ export async function evaluateCandidateV2(
       transferableSkills: extractedData.rubricEvaluation.bonusFactors.transferableSkills,
       preferredQualificationsMet: extractedData.rubricEvaluation.bonusFactors.preferredQualificationsMet,
       softSkillsIdentified: extractedData.rubricEvaluation.softSkills.culturalFitIndicators,
-      bonusReason: `Transferable skills: ${extractedData.rubricEvaluation.bonusFactors.transferableSkills.length}, Preferred qualifications: ${extractedData.rubricEvaluation.bonusFactors.preferredQualificationsMet.length}`
+      bonusReason: `Transferable skills: ${extractedData.rubricEvaluation.bonusFactors.transferableSkills.length}, Preferred qualifications: ${extractedData.rubricEvaluation.bonusFactors.preferredQualificationsMet.length}`,
+      partialMatches: extractedData.partialMatches,
+      recommendationRationale: extractedData.recommendationRationale
     };
 
     return evaluation;
 
   } catch (error) {
-    console.error(`Error evaluating candidate ${fileName}:`, error);
+    logger.error(`Error evaluating candidate ${fileName}:`, error);
     throw new Error(`Failed to evaluate candidate ${fileName}. Reason: ${error instanceof Error ? error.message : 'Unknown'}`);
   }
 }
