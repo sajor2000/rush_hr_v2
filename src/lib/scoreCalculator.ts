@@ -453,22 +453,13 @@ export function calculateScores(
 
 /**
  * Determine tier based on calculated score
+ * Using quartiles instead of qualification labels to avoid bias
  */
-export function determineTier(score: number, jobType: string): string {
-  if (jobType === 'entry-level') {
-    if (score >= 85) return 'Top Tier';
-    if (score >= 70) return 'Qualified';
-    if (score >= 55) return 'Potential';
-    return 'Not Qualified';
-  } else if (jobType === 'technical') {
-    if (score >= 90) return 'Top Tier';
-    if (score >= 80) return 'Qualified';
-    if (score >= 70) return 'Potential';
-    return 'Not Qualified';
-  } else {
-    if (score >= 85) return 'Top Tier';
-    if (score >= 75) return 'Qualified';
-    if (score >= 65) return 'Potential';
-    return 'Not Qualified';
-  }
+export function determineTier(score: number, _jobType: string): string {
+  // All candidates are ranked by quartiles regardless of job type
+  // This avoids making definitive qualification judgments
+  if (score >= 75) return 'First Quartile';
+  if (score >= 50) return 'Second Quartile';
+  if (score >= 25) return 'Third Quartile';
+  return 'Fourth Quartile';
 }

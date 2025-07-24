@@ -110,7 +110,7 @@ export interface EvaluationResult {
     bonusPoints?: number; // Bonus points (0-15) for preferred qualifications and soft skills
   };
   mustHavesMet: boolean;
-  tier: 'Top Tier' | 'Qualified' | 'Potential' | 'Not Qualified';
+  tier: 'First Quartile' | 'Second Quartile' | 'Third Quartile' | 'Fourth Quartile';
   strengths: string[];
   gaps: string[];
   explanation: string;

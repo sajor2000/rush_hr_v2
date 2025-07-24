@@ -17,6 +17,7 @@ import {
 import React, { useState, Fragment } from 'react'; // Added Fragment
 
 import { EnhancedJobRequirements } from '@/types';
+import ProcessingDisclaimer from './ProcessingDisclaimer';
 
 interface ResultsDashboardProps {
   results: EvaluationResult[];
@@ -99,14 +100,15 @@ const ExpandedRowContent: React.FC<{ result: EvaluationResult, jobRequirements: 
         </div>
       )}
 
-      {result.tier === 'Not Qualified' && result.gaps && result.gaps.length > 0 && (!jobRequirements.mustHave || jobRequirements.mustHave.length === 0 || result.mustHavesMet === false) && (
-         <div className="mt-2 pt-2 border-t border-dashed border-red-300">
-            <p className="font-semibold text-red-600">Overall Reason for Not Qualified (if not covered by specific must-haves):</p>
-            <ul className="list-disc list-inside ml-2 text-red-500">
+      {result.tier === 'Fourth Quartile' && result.gaps && result.gaps.length > 0 && (!jobRequirements.mustHave || jobRequirements.mustHave.length === 0 || result.mustHavesMet === false) && (
+         <div className="mt-2 pt-2 border-t border-dashed border-orange-300">
+            <p className="font-semibold text-orange-600">Areas for Development (Fourth Quartile - Manual Review Recommended):</p>
+            <ul className="list-disc list-inside ml-2 text-orange-500">
               {result.gaps.map((gap, index) => (
                 <li key={`general-gap-${index}`}>{gap}</li>
               ))}
             </ul>
+            <p className="text-sm text-orange-600 mt-2 italic">Note: Lower scores may be due to resume parsing issues. Please review manually.</p>
           </div>
       )}
     </div>
@@ -157,8 +159,8 @@ const columns = [
           'Q4 - Weak Fit (Bottom 25%)': 'bg-orange-100 text-orange-800',
         };
         displayStyle = quartileStyles[quartileTier] || displayStyle;
-      } else if (originalTier === 'Not Qualified') {
-        displayStyle = 'bg-red-100 text-red-800';
+      } else if (originalTier === 'Fourth Quartile') {
+        displayStyle = 'bg-orange-100 text-orange-800';
       }
 
       return (
@@ -188,10 +190,10 @@ const columns = [
       return (
         <div className="text-sm text-gray-700 max-w-md whitespace-normal">
           <p>{evaluation.explanation}</p>
-          {evaluation.tier === 'Not Qualified' && evaluation.gaps && evaluation.gaps.length > 0 && (
-            <div className="mt-2 pt-1 border-t border-dashed border-red-300">
-              <p className="font-semibold text-red-600">Reason for Not Qualified:</p>
-              <ul className="list-disc list-inside ml-2 text-red-500">
+          {evaluation.tier === 'Fourth Quartile' && evaluation.gaps && evaluation.gaps.length > 0 && (
+            <div className="mt-2 pt-1 border-t border-dashed border-orange-300">
+              <p className="font-semibold text-orange-600">Areas for Development (Fourth Quartile):</p>
+              <ul className="list-disc list-inside ml-2 text-orange-500">
                 {evaluation.gaps.map((gap, index) => (
                   <li key={index}>{gap}</li>
                 ))}
@@ -237,8 +239,10 @@ export default function ResultsDashboard({ results: initialResults, jobRequireme
   });
 
   return (
-    <div className="w-full overflow-x-auto">
-      <table className="min-w-full bg-white border border-gray-200">
+    <div className="w-full">
+      <ProcessingDisclaimer />
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white border border-gray-200">
         <thead className="bg-gray-50">
           {table.getHeaderGroups().map(headerGroup => (
             <tr key={headerGroup.id}>
@@ -273,6 +277,7 @@ export default function ResultsDashboard({ results: initialResults, jobRequireme
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

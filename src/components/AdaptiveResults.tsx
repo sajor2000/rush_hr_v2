@@ -3,12 +3,18 @@
 import { useMemo } from 'react';
 import { EvaluationResult } from '@/types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import ProcessingDisclaimer from './ProcessingDisclaimer';
 
 interface AdaptiveResultsProps {
   results: EvaluationResult[];
 }
 
 const tierColors: { [key: string]: string } = {
+  'First Quartile': '#22c55e',
+  'Second Quartile': '#3b82f6',
+  'Third Quartile': '#f59e0b',
+  'Fourth Quartile': '#ef4444',
+  // Legacy support
   'Top Tier': '#22c55e',
   'Promising': '#3b82f6',
   'Not a Fit': '#ef4444',
@@ -28,8 +34,10 @@ export default function AdaptiveResults({ results }: AdaptiveResultsProps) {
   }, [tierCounts]);
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Evaluation Summary</h3>
+    <div>
+      <ProcessingDisclaimer />
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Evaluation Summary</h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-center">
         {Object.entries(tierCounts).map(([tier, count]) => (
           <div key={tier} className="p-4 rounded-lg" style={{ backgroundColor: `${tierColors[tier]}20` }}>
@@ -49,6 +57,7 @@ export default function AdaptiveResults({ results }: AdaptiveResultsProps) {
             <Bar dataKey="count" fill="#8884d8" name="Candidates" />
           </BarChart>
         </ResponsiveContainer>
+      </div>
       </div>
     </div>
   );
